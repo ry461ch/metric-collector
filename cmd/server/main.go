@@ -90,14 +90,12 @@ func main() {
 		http.StripPrefix(`/update/gauge/`, Conveyor(
 			http.HandlerFunc(gaugeHandler),
 			middlewareAllowMethodPost,
-			middlewareAllowContentTypeTextPlain,
 			middlewareValidateRequestData)))
 	mux.Handle(
 		`/update/counter/`,
 		http.StripPrefix(`/update/counter/`, Conveyor(
 			http.HandlerFunc(counterHandler),
 			middlewareAllowMethodPost,
-			middlewareAllowContentTypeTextPlain,
 			middlewareValidateRequestData)))
 	mux.HandleFunc(`/update/`, func(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, "Некорректный тип тела запроса", http.StatusNotFound)
