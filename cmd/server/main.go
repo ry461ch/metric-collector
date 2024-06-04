@@ -85,7 +85,7 @@ func main() {
 			middlewareAllowMethodPost,
 			middlewareValidateRequestData)))
 	mux.HandleFunc(`/update/`, func(res http.ResponseWriter, req *http.Request) {
-		res.WriteHeader(http.StatusNotFound)
+		res.WriteHeader(http.StatusBadRequest)
 	})
 
 	err := http.ListenAndServe(`:8080`, mux)
