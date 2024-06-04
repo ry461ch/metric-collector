@@ -72,6 +72,10 @@ func counterHandler(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusOK)
 }
 
+func invalidUrlHandler(res http.ResponseWriter, req *http.Request) {
+	http.Error(res, "Некорректный тип тела запроса", http.StatusNotFound)
+}
+
 func main() {
 	mux := http.NewServeMux()
 	mux.Handle(
@@ -86,9 +90,7 @@ func main() {
 			http.HandlerFunc(counterHandler),
 			middlewareAllowMethodPost,
 			middlewareValidateRequestData)))
-	mux.HandleFunc(`/update/`, func(res http.ResponseWriter, req *http.Request) {
-		http.Error(res, "Некорректный тип тела запроса", http.StatusNotFound)
-	})
+	mux.Handle(`/update/`, http.HandlerFunc(invalidUrlHandler))
 
 	err := http.ListenAndServe(`:8080`, mux)
 	if err != nil {
