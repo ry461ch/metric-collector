@@ -53,7 +53,7 @@ func middlewareValidateRequestData(next http.Handler) http.Handler {
 		args := strings.Split(req.URL.Path, "/")
 
 		if len(args) != 2 {
-			http.Error(res, "Некорректный формат тела запроса", http.StatusBadRequest)
+			http.Error(res, "Некорректный формат тела запроса", http.StatusNotFound)
 			return
 		}
 
