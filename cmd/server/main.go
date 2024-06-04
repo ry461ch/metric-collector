@@ -37,17 +37,6 @@ func middlewareAllowMethodPost(next http.Handler) http.Handler {
     })
 }
 
-// func middlewareAllowContentTypeTextPlain(next http.Handler) http.Handler {
-//     return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-// 		if req.Header.Get("Content-Type") != "text/plain" {
-// 			http.Error(res, "Некорректный тип тела запроса", http.StatusBadRequest)
-// 			return
-// 		}
-
-//         next.ServeHTTP(res, req)
-//     })
-// }
-
 func middlewareValidateRequestData(next http.Handler) http.Handler {
     return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		args := strings.Split(req.URL.Path, "/")
