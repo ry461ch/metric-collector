@@ -12,16 +12,18 @@ import (
 	"github.com/ry461ch/metric-collector/internal/storage"
 )
 
-type HttpClient struct {
+type HTTPClient struct {
 	url string
 }
 
-func (httpClient HttpClient) Post(path string) (int64, error) {
+func (httpClient HTTPClient) Post(path string) (int64, error) {
 	resp, err := http.Post(httpClient.url, "text/plain", nil)
 	if err != nil {
 		return int64(0), fmt.Errorf("server broken or timeouted")
 	}
-	return int64(resp.StatusCode), nil
+	statusCode := resp.StatusCode
+	resp.Body.Close()
+	return int64(statusCode), nil
 
 }
 
@@ -93,10 +95,10 @@ func Run(mStorage storage.Storage, client client.ServerClient) {
 }
 
 func main() {
-	serverUrl := "http://localhost:8080"
+	serverURL := "http://localhost:8080"
 	internalStorage := storage.MetricStorage{}
 	for {
-		Run(&internalStorage, HttpClient{url: serverUrl})
+		Run(&internalStorage, HTTPClient{url: serverURL})
 		time.Sleep(2 * time.Second)
 	}
 }

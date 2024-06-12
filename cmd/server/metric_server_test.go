@@ -17,26 +17,26 @@ func TestServer(t *testing.T) {
 	testCases := []struct {
 		testName    string
 		method       string
-		requestUrl  string
+		requestPath  string
 		expectedCode int
 	}{
-		{testName: "invalid method for gauge", method: http.MethodGet, requestUrl: defaultGaugeRequest, expectedCode: http.StatusMethodNotAllowed},
-		{testName: "invalid method for counter", method: http.MethodDelete, requestUrl: defaultCounterRequest, expectedCode: http.StatusMethodNotAllowed},
-		{testName: "ok for gauge", method: http.MethodPost, requestUrl: defaultGaugeRequest, expectedCode: http.StatusOK},
-		{testName: "ok for counter", method: http.MethodPost, requestUrl: defaultCounterRequest, expectedCode: http.StatusOK},
-		{testName: "ok with / at the end", method: http.MethodPost, requestUrl: defaultCounterRequest + "/", expectedCode: http.StatusOK},
-		{testName: "no metric name and value for counter", method: http.MethodPost, requestUrl: "/update/counter/", expectedCode: http.StatusNotFound},
-		{testName: "no metric name and value for gauge", method: http.MethodPost, requestUrl: "/update/gauge/", expectedCode: http.StatusNotFound},
-		{testName: "invalid metric type", method: http.MethodPost, requestUrl: "/update/invalid_metric_type/", expectedCode: http.StatusBadRequest},
-		{testName: "no metric name for counter", method: http.MethodPost, requestUrl: "/update/counter/10", expectedCode: http.StatusNotFound},
-		{testName: "no metric name for gauge ", method: http.MethodPost, requestUrl: "/update/gauge/10", expectedCode: http.StatusNotFound},
-		{testName: "invalid metric value for counter", method: http.MethodPost, requestUrl: "/update/counter/test/10.0", expectedCode: http.StatusBadRequest},
-		{testName: "invalid metric value for gauge", method: http.MethodPost, requestUrl: "/update/gauge/test/str", expectedCode: http.StatusBadRequest},
+		{testName: "invalid method for gauge", method: http.MethodGet, requestPath: defaultGaugeRequest, expectedCode: http.StatusMethodNotAllowed},
+		{testName: "invalid method for counter", method: http.MethodDelete, requestPath: defaultCounterRequest, expectedCode: http.StatusMethodNotAllowed},
+		{testName: "ok for gauge", method: http.MethodPost, requestPath: defaultGaugeRequest, expectedCode: http.StatusOK},
+		{testName: "ok for counter", method: http.MethodPost, requestPath: defaultCounterRequest, expectedCode: http.StatusOK},
+		{testName: "ok with / at the end", method: http.MethodPost, requestPath: defaultCounterRequest + "/", expectedCode: http.StatusOK},
+		{testName: "no metric name and value for counter", method: http.MethodPost, requestPath: "/update/counter/", expectedCode: http.StatusNotFound},
+		{testName: "no metric name and value for gauge", method: http.MethodPost, requestPath: "/update/gauge/", expectedCode: http.StatusNotFound},
+		{testName: "invalid metric type", method: http.MethodPost, requestPath: "/update/invalid_metric_type/", expectedCode: http.StatusBadRequest},
+		{testName: "no metric name for counter", method: http.MethodPost, requestPath: "/update/counter/10", expectedCode: http.StatusNotFound},
+		{testName: "no metric name for gauge ", method: http.MethodPost, requestPath: "/update/gauge/10", expectedCode: http.StatusNotFound},
+		{testName: "invalid metric value for counter", method: http.MethodPost, requestPath: "/update/counter/test/10.0", expectedCode: http.StatusBadRequest},
+		{testName: "invalid metric value for gauge", method: http.MethodPost, requestPath: "/update/gauge/test/str", expectedCode: http.StatusBadRequest},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.testName, func(t *testing.T) {
-			req := httptest.NewRequest(tc.method, tc.requestUrl, nil)
+			req := httptest.NewRequest(tc.method, tc.requestPath, nil)
 			resp := httptest.NewRecorder()
 
 			updateMetricServer := MetricUpdateServer{mStorage: &storage.MetricStorage{}}
