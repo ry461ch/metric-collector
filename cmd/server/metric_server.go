@@ -9,7 +9,7 @@ import (
 )
 
 type MetricUpdateServer struct {
-	m_storage storage.Storage
+	mStorage storage.Storage
 }
 
 func (server *MetricUpdateServer) gaugeHandler(res http.ResponseWriter, req *http.Request) {
@@ -19,7 +19,7 @@ func (server *MetricUpdateServer) gaugeHandler(res http.ResponseWriter, req *htt
 		res.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	server.m_storage.UpdateGaugeValue(args[0], val)
+	server.mStorage.UpdateGaugeValue(args[0], val)
 	res.WriteHeader(http.StatusOK)
 }
 
@@ -30,7 +30,7 @@ func (server *MetricUpdateServer) counterHandler(res http.ResponseWriter, req *h
 		res.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	server.m_storage.UpdateCounterValue(args[0], val)
+	server.mStorage.UpdateCounterValue(args[0], val)
 	res.WriteHeader(http.StatusOK)
 }
 

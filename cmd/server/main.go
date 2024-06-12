@@ -8,7 +8,7 @@ import (
 
 func main() {
 	mux := http.NewServeMux()
-	server := MetricUpdateServer{m_storage: &storage.MetricStorage{}}
+	server := MetricUpdateServer{mStorage: &storage.MetricStorage{}}
 	mux.HandleFunc(`/update/`, server.UpdateMetricHandler)
 	err := http.ListenAndServe(`:8080`, mux)
 	if err != nil {
