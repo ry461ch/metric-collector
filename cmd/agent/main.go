@@ -56,20 +56,20 @@ func SendMetric(mStorage storage.Storage, serverURL string) {
 		path := "/update/gauge/" + metricName + "/" + strconv.FormatFloat(val, 'f', -1, 64)
 		resp, err := client.R().Post(serverURL + path)
 		if err != nil {
-			fmt.Printf("server broken or timeouted")
+			fmt.Printf("server broken or timeouted: %s\n", err.Error())
 		}
 		if resp.StatusCode() != http.StatusOK {
-			fmt.Printf("an error occurred in the agent when sending metric %s", metricName)
+			fmt.Printf("an error occurred in the agent when sending metric %s, server returned %d\n", metricName, resp.StatusCode())
 		}
 	}
 	for metricName, val := range mStorage.GetCounterValues() {
 		path := "/update/counter/" + metricName + "/" + strconv.FormatInt(val, 10)
 		resp, err := client.R().Post(serverURL + path)
 		if err != nil {
-			fmt.Printf("server broken or timeouted")
+			fmt.Printf("server broken or timeouted: %s\n", err.Error())
 		}
 		if resp.StatusCode() != http.StatusOK {
-			fmt.Printf("an error occurred in the agent when sending metric %s", metricName)
+			fmt.Printf("an error occurred in the agent when sending metric %s, server returned %d\n", metricName, resp.StatusCode())
 		}
 	}
 }

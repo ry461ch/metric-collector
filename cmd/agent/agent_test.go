@@ -19,12 +19,13 @@ func (mStorage *MockServerStorage) pathCounter(res http.ResponseWriter, req *htt
 	if mStorage.PathTimesCalled == nil {
 		mStorage.PathTimesCalled = map[string]int64{}
 	}
+
 	mStorage.PathTimesCalled[req.URL.Path] += 1
 }
 
 func (mStorage *MockServerStorage) mockRouter() chi.Router {
 	router := chi.NewRouter()
-    router.Get("/", mStorage.pathCounter)
+    router.Post("/*", mStorage.pathCounter)
     return router
 }
 
