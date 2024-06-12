@@ -1,23 +1,31 @@
 package main
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/go-chi/chi/v5"
 
 	"github.com/ry461ch/metric-collector/internal/storage"
 )
 
-type MockClient struct {
+type MockServerStorage struct {
 	PathTimesCalled map[string]int64
 }
 
-func (mockClient *MockClient) Post(path string) (int64, error) {
-	if mockClient.PathTimesCalled == nil {
-		mockClient.PathTimesCalled = map[string]int64{}
+func (mStorage *MockServerStorage) pathCounter(res http.ResponseWriter, req *http.Request) {
+	if mStorage.PathTimesCalled == nil {
+		mStorage.PathTimesCalled = map[string]int64{}
 	}
-	mockClient.PathTimesCalled[path] += 1
-	return 200, nil
+	mStorage.PathTimesCalled[req.URL.Path] += 1
+}
+
+func (mStorage *MockServerStorage) mockRouter() chi.Router {
+	router := chi.NewRouter()
+    router.Get("/", mStorage.pathCounter)
+    return router
 }
 
 func TestCollectMetric(t *testing.T) {
@@ -38,29 +46,37 @@ func TestCollectMetric(t *testing.T) {
 }
 
 func TestSendMetric(t *testing.T) {
-	client := MockClient{}
-	storage := storage.MetricStorage{}
+	serverStorage := MockServerStorage{}
+	router := serverStorage.mockRouter()
+	srv := httptest.NewServer(router)
+	defer srv.Close()
 
-	storage.UpdateGaugeValue("test", 10.0)
-	storage.UpdateGaugeValue("test_2", 10.0)
-	storage.UpdateGaugeValue("test_3", 10.0)
-	storage.UpdateCounterValue("test_4", 10)
-	storage.UpdateCounterValue("test_5", 7)
+	agentStorage := storage.MetricStorage{}
 
-	SendMetric(&storage, &client)
-	assert.Equal(t, 5, len(client.PathTimesCalled), "Не прошел запрос на сервер")
-	assert.Equal(t, int64(1), client.PathTimesCalled["/update/gauge/test/10"], "Неверный запрос сервера")
+	agentStorage.UpdateGaugeValue("test", 10.0)
+	agentStorage.UpdateGaugeValue("test_2", 10.0)
+	agentStorage.UpdateGaugeValue("test_3", 10.0)
+	agentStorage.UpdateCounterValue("test_4", 10)
+	agentStorage.UpdateCounterValue("test_5", 7)
+
+	SendMetric(&agentStorage, srv.URL)
+	assert.Equal(t, 5, len(serverStorage.PathTimesCalled), "Не прошел запрос на сервер")
+	assert.Equal(t, int64(1), serverStorage.PathTimesCalled["/update/gauge/test/10"], "Неверный запрос сервера")
 }
 
 func TestRun(t *testing.T) {
-	client := MockClient{}
-	storage := storage.MetricStorage{}
-	storage.UpdateCounterValue("PollCount", 3)
+	serverStorage := MockServerStorage{}
+	router := serverStorage.mockRouter()
+	srv := httptest.NewServer(router)
+	defer srv.Close()
 
-	Run(&storage, &client)
+	agentStorage := storage.MetricStorage{}
+	agentStorage.UpdateCounterValue("PollCount", 3)
+
+	Run(&agentStorage, srv.URL)
 	// PollCount == 4
-	assert.Nil(t, client.PathTimesCalled, "Вызвался сервер, когда PollCount не кратен 5")
-	Run(&storage, &client)
+	assert.Nil(t, serverStorage.PathTimesCalled, "Вызвался сервер, когда PollCount не кратен 5")
+	Run(&agentStorage, srv.URL)
 	// PollCount == 5 => server called
-	assert.Less(t, 0, len(client.PathTimesCalled), "Не прошел запрос на сервер")
+	assert.Less(t, 0, len(serverStorage.PathTimesCalled), "Не прошел запрос на сервер")
 }

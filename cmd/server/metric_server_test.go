@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/resty.v1"
 
 	"github.com/ry461ch/metric-collector/internal/storage"
 )
@@ -34,45 +35,54 @@ func TestServer(t *testing.T) {
 		{testName: "invalid metric value for gauge", method: http.MethodPost, requestPath: "/update/gauge/test/str", expectedCode: http.StatusBadRequest},
 	}
 
+	client := resty.New()
+
+	updateMetricServer := MetricUpdateServer{mStorage: &storage.MetricStorage{}}
+	router := updateMetricServer.MakeRouter()
+	srv := httptest.NewServer(router)
+	defer srv.Close()
+
 	for _, tc := range testCases {
 		t.Run(tc.testName, func(t *testing.T) {
-			req := httptest.NewRequest(tc.method, tc.requestPath, nil)
-			resp := httptest.NewRecorder()
-
-			updateMetricServer := MetricUpdateServer{mStorage: &storage.MetricStorage{}}
-			updateMetricServer.UpdateMetricHandler(resp, req)
-
-			assert.Equal(t, tc.expectedCode, resp.Code, "Код ответа не совпадает с ожидаемым")
+			resp, err := client.R().Execute(tc.method, srv.URL + tc.requestPath)
+			assert.Nil(t, err, "Сервер вернул 500")
+			assert.Equal(t, tc.expectedCode, resp.StatusCode(), "Код ответа не совпадает с ожидаемым")
 		})
 	}
 }
 
 func TestGaugeServe(t *testing.T) {
-	req := httptest.NewRequest(http.MethodPost, "/update/gauge/some_metric/10.0", nil)
-	resp := httptest.NewRecorder()
+	memStorage := storage.MetricStorage{}
 
-	storage := storage.MetricStorage{}
-	updateMetricServer := MetricUpdateServer{mStorage: &storage}
-	updateMetricServer.UpdateMetricHandler(resp, req)
+	updateMetricServer := MetricUpdateServer{mStorage: &memStorage}
+	router := updateMetricServer.MakeRouter()
+	srv := httptest.NewServer(router)
+	defer srv.Close()
 
-	// update same metric
-	req = httptest.NewRequest(http.MethodPost, "/update/gauge/some_metric/12.0", nil)
-	updateMetricServer.UpdateMetricHandler(resp, req)
+	client := resty.New()
+	_, err := client.R().Post("/update/gauge/some_metric/10.0")
+	assert.Nil(t, err, "Сервер вернул 500")
 
-	assert.Equal(t, float64(12.0), storage.GetGaugeValue("some_metric"), "Сохраненное значение метрики типа gauge не совпадает с ожидаемым")
+	_, err = client.R().Post("/update/gauge/some_metric/12.0")
+	assert.Nil(t, err, "Сервер вернул 500")
+
+	assert.Equal(t, float64(12.0), memStorage.GetGaugeValue("some_metric"), "Сохраненное значение метрики типа gauge не совпадает с ожидаемым")
 }
 
 func TestCounterServe(t *testing.T) {
-	req := httptest.NewRequest(http.MethodPost, "/update/counter/some_metric/10", nil)
-	resp := httptest.NewRecorder()
+	memStorage := storage.MetricStorage{}
 
-	storage := storage.MetricStorage{}
-	updateMetricServer := MetricUpdateServer{mStorage: &storage}
-	updateMetricServer.UpdateMetricHandler(resp, req)
+	updateMetricServer := MetricUpdateServer{mStorage: &memStorage}
+	router := updateMetricServer.MakeRouter()
+	srv := httptest.NewServer(router)
+	defer srv.Close()
 
-	// update same metric
-	req = httptest.NewRequest(http.MethodPost, "/update/counter/some_metric/12", nil)
-	updateMetricServer.UpdateMetricHandler(resp, req)
+	client := resty.New()
+	_, err := client.R().Post("/update/counter/some_metric/10")
+	assert.Nil(t, err, "Сервер вернул 500")
 
-	assert.Equal(t, int64(22), storage.GetCounterValue("some_metric"), "Сохраненное значение метрики типа counter не совпадает с ожидаемым")
+	_, err = client.R().Post("/update/counter/some_metric/12")
+	assert.Nil(t, err, "Сервер вернул 500")
+
+	assert.Equal(t, int64(22), memStorage.GetCounterValue("some_metric"), "Сохраненное значение метрики типа counter не совпадает с ожидаемым")
 }

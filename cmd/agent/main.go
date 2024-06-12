@@ -8,28 +8,16 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ry461ch/metric-collector/internal/client"
+	"gopkg.in/resty.v1"
+
 	"github.com/ry461ch/metric-collector/internal/storage"
 )
 
-type HTTPClient struct {
-	url string
-}
-
-func (httpClient HTTPClient) Post(path string) (int64, error) {
-	resp, err := http.Post(httpClient.url, "text/plain", nil)
-	if err != nil {
-		return int64(0), fmt.Errorf("server broken or timeouted")
-	}
-	statusCode := resp.StatusCode
-	resp.Body.Close()
-	return int64(statusCode), nil
-
-}
 
 func CollectMetric(mStorage storage.Storage) {
 	var rtm runtime.MemStats
 	runtime.ReadMemStats(&rtm)
+
 	mStorage.UpdateGaugeValue("Alloc", float64(rtm.Alloc))
 	mStorage.UpdateGaugeValue("BuckHashSys", float64(rtm.BuckHashSys))
 	mStorage.UpdateGaugeValue("Frees", float64(rtm.Frees))
@@ -62,34 +50,35 @@ func CollectMetric(mStorage storage.Storage) {
 	mStorage.UpdateGaugeValue("RandomValue", rand.Float64())
 }
 
-func SendMetric(mStorage storage.Storage, client client.ServerClient) {
+func SendMetric(mStorage storage.Storage, serverURL string) {
+	client := resty.New()
 	for metricName, val := range mStorage.GetGaugeValues() {
 		path := "/update/gauge/" + metricName + "/" + strconv.FormatFloat(val, 'f', -1, 64)
-		statusCode, err := client.Post(path)
+		resp, err := client.R().Post(serverURL + path)
 		if err != nil {
 			fmt.Printf("server broken or timeouted")
 		}
-		if statusCode != http.StatusOK {
+		if resp.StatusCode() != http.StatusOK {
 			fmt.Printf("an error occurred in the agent when sending metric %s", metricName)
 		}
 	}
 	for metricName, val := range mStorage.GetCounterValues() {
 		path := "/update/counter/" + metricName + "/" + strconv.FormatInt(val, 10)
-		statusCode, err := client.Post(path)
+		resp, err := client.R().Post(serverURL + path)
 		if err != nil {
 			fmt.Printf("server broken or timeouted")
 		}
-		if statusCode != http.StatusOK {
+		if resp.StatusCode() != http.StatusOK {
 			fmt.Printf("an error occurred in the agent when sending metric %s", metricName)
 		}
 	}
 }
 
-func Run(mStorage storage.Storage, client client.ServerClient) {
+func Run(mStorage storage.Storage, serverURL string) {
 	CollectMetric(mStorage)
 
 	if mStorage.GetCounterValue("PollCount")%5 == 0 {
-		SendMetric(mStorage, client)
+		SendMetric(mStorage, serverURL)
 	}
 
 }
@@ -98,7 +87,7 @@ func main() {
 	serverURL := "http://localhost:8080"
 	internalStorage := storage.MetricStorage{}
 	for {
-		Run(&internalStorage, HTTPClient{url: serverURL})
+		Run(&internalStorage, serverURL)
 		time.Sleep(2 * time.Second)
 	}
 }

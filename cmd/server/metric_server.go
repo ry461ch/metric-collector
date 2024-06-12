@@ -3,7 +3,8 @@ package main
 import (
 	"net/http"
 	"strconv"
-	"strings"
+
+	"github.com/go-chi/chi/v5"
 
 	"github.com/ry461ch/metric-collector/internal/storage"
 )
@@ -13,46 +14,58 @@ type MetricUpdateServer struct {
 }
 
 func (server *MetricUpdateServer) gaugeHandler(res http.ResponseWriter, req *http.Request) {
-	args := strings.Split(req.URL.Path, "/")
-	val, err := strconv.ParseFloat(args[1], 64)
+	metricName := chi.URLParam(req, "name")
+	metricVal, err := strconv.ParseFloat(chi.URLParam(req, "value"), 64)
 	if err != nil {
 		res.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	server.mStorage.UpdateGaugeValue(args[0], val)
+	server.mStorage.UpdateGaugeValue(metricName, metricVal)
 	res.WriteHeader(http.StatusOK)
 }
 
 func (server *MetricUpdateServer) counterHandler(res http.ResponseWriter, req *http.Request) {
-	args := strings.Split(req.URL.Path, "/")
-	val, err := strconv.ParseInt(args[1], 10, 0)
+	metricName := chi.URLParam(req, "name")
+	metricVal, err := strconv.ParseInt(chi.URLParam(req, "value"), 10, 0)
 	if err != nil {
 		res.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	server.mStorage.UpdateCounterValue(args[0], val)
+	server.mStorage.UpdateCounterValue(metricName, metricVal)
 	res.WriteHeader(http.StatusOK)
 }
 
-func (server *MetricUpdateServer) UpdateMetricHandler(res http.ResponseWriter, req *http.Request) {
-	args := strings.Split(req.URL.Path, "/")
-	if len(args) < 3 {
-		res.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	if args[2] == "gauge" {
-		http.StripPrefix(`/update/gauge/`, Conveyor(
-			http.HandlerFunc(server.gaugeHandler),
-			middlewareAllowMethodPost,
-			middlewareValidateArgsNum)).ServeHTTP(res, req)
-		return
-	}
-	if args[2] == "counter" {
-		http.StripPrefix(`/update/counter/`, Conveyor(
-			http.HandlerFunc(server.counterHandler),
-			middlewareAllowMethodPost,
-			middlewareValidateArgsNum)).ServeHTTP(res, req)
-		return
-	}
-	res.WriteHeader(http.StatusBadRequest)
+
+func (server *MetricUpdateServer) MakeRouter() chi.Router {
+	router := chi.NewRouter()
+	router.Use(middlewareAllowMethodPost, middlewareValidateContentType)
+
+	router.Route("/update", func(r chi.Router) {
+		r.Route("/counter", func(r chi.Router) {
+			r.Route("/{name:[a-zA-Z-_]+}", func(r chi.Router) {
+				r.Post("/{value:[0-9]+}", server.counterHandler)
+				r.Post("/*", func(res http.ResponseWriter, req *http.Request) {
+					res.WriteHeader(http.StatusBadRequest)
+				})
+			})
+			r.Post("/*", func(res http.ResponseWriter, req *http.Request) {
+				res.WriteHeader(http.StatusNotFound)
+			})
+		})
+		r.Route("/gauge", func(r chi.Router) {
+			r.Route("/{name:[a-zA-Z-_]+}", func(r chi.Router) {
+				r.Post("/{value:[0-9]+\\.?[0-9]*}", server.gaugeHandler)
+				r.Post("/*", func(res http.ResponseWriter, req *http.Request) {
+					res.WriteHeader(http.StatusBadRequest)
+				})
+			})
+			r.Post("/*", func(res http.ResponseWriter, req *http.Request) {
+				res.WriteHeader(http.StatusNotFound)
+			})
+		})
+		r.Post("/*", func(res http.ResponseWriter, req *http.Request) {
+			res.WriteHeader(http.StatusBadRequest)
+		})
+	})
+	return router
 }

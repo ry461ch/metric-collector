@@ -7,10 +7,9 @@ import (
 )
 
 func main() {
-	mux := http.NewServeMux()
 	server := MetricUpdateServer{mStorage: &storage.MetricStorage{}}
-	mux.HandleFunc(`/update/`, server.UpdateMetricHandler)
-	err := http.ListenAndServe(`:8080`, mux)
+	router := server.MakeRouter()
+	err := http.ListenAndServe(`:8080`, router)
 	if err != nil {
 		panic(err)
 	}
