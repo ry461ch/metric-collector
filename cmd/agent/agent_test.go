@@ -5,8 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/go-chi/chi/v5"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/ry461ch/metric-collector/internal/storage"
 )
@@ -25,8 +25,8 @@ func (mStorage *MockServerStorage) pathCounter(res http.ResponseWriter, req *htt
 
 func (mStorage *MockServerStorage) mockRouter() chi.Router {
 	router := chi.NewRouter()
-    router.Post("/*", mStorage.pathCounter)
-    return router
+	router.Post("/*", mStorage.pathCounter)
+	return router
 }
 
 func TestCollectMetric(t *testing.T) {
@@ -39,11 +39,13 @@ func TestCollectMetric(t *testing.T) {
 	assert.Contains(t, storedGaugeValues, "NextGC")
 	assert.Contains(t, storedGaugeValues, "HeapIdle")
 	assert.Contains(t, storedGaugeValues, "RandomValue")
-	assert.Equal(t, int64(1), storage.GetCounterValue("PollCount"))
+	val, _ := storage.GetCounterValue("PollCount")
+	assert.Equal(t, int64(1), val)
 
 	CollectMetric(&storage)
 
-	assert.Equal(t, int64(2), storage.GetCounterValue("PollCount"))
+	val, _ = storage.GetCounterValue("PollCount")
+	assert.Equal(t, int64(2), val)
 }
 
 func TestSendMetric(t *testing.T) {

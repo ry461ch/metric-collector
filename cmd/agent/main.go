@@ -13,7 +13,6 @@ import (
 	"github.com/ry461ch/metric-collector/internal/storage"
 )
 
-
 func CollectMetric(mStorage storage.Storage) {
 	var rtm runtime.MemStats
 	runtime.ReadMemStats(&rtm)
@@ -77,7 +76,8 @@ func SendMetric(mStorage storage.Storage, serverURL string) {
 func Run(mStorage storage.Storage, serverURL string) {
 	CollectMetric(mStorage)
 
-	if mStorage.GetCounterValue("PollCount")%5 == 0 {
+	value, _ := mStorage.GetCounterValue("PollCount")
+	if value%5 == 0 {
 		SendMetric(mStorage, serverURL)
 	}
 
