@@ -21,14 +21,14 @@ func TestNetAddr(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.testName, func(t *testing.T) {
-			res_addr := NetAddress{}
-			err := res_addr.Set(tc.input)
+			resAddr := NetAddress{}
+			err := resAddr.Set(tc.input)
 			if err != nil {
 				assert.Nil(t, tc.expectedAddr, "Invalid input was successfully parsed")
 				return
 			}
-			assert.Equal(t, tc.expectedAddr.Host, res_addr.Host, "hosts mismatch")
-			assert.Equal(t, tc.expectedAddr.Port, res_addr.Port, "ports mismatch")
+			assert.Equal(t, tc.expectedAddr.Host, resAddr.Host, "hosts mismatch")
+			assert.Equal(t, tc.expectedAddr.Port, resAddr.Port, "ports mismatch")
 		})
 	}
 }
