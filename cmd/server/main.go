@@ -4,7 +4,6 @@ import (
 	"flag"
 	"net/http"
     "strconv"
-	"fmt"
 
 	"github.com/ry461ch/metric-collector/internal/storage"
 	"github.com/ry461ch/metric-collector/internal/net_addr"
