@@ -8,12 +8,21 @@ import (
 	"runtime"
 	"strconv"
 	"time"
+	"log"
+	"strings"
 
 	"gopkg.in/resty.v1"
+	"github.com/caarlos0/env/v11"
 
 	"github.com/ry461ch/metric-collector/internal/net_addr"
 	"github.com/ry461ch/metric-collector/internal/storage"
 )
+
+type Config struct {
+	address		string `env:"ADDRESS"`
+	reportInterval int64 `env:"REPORT_INTERVAL"`
+	pollInterval int64 `env:"POLL_INTERVAL"`
+}
 
 type Options struct {
 	reportIntervalSec int64
@@ -33,6 +42,7 @@ type MetricAgent struct {
 }
 
 func (agent *MetricAgent) CollectMetric() {
+	log.Println("Trying to collect metrics")
 	var rtm runtime.MemStats
 	runtime.ReadMemStats(&rtm)
 
@@ -66,9 +76,11 @@ func (agent *MetricAgent) CollectMetric() {
 
 	agent.mStorage.UpdateCounterValue("PollCount", 1)
 	agent.mStorage.UpdateGaugeValue("RandomValue", rand.Float64())
+	log.Println("Successfully got all metrics")
 }
 
 func (agent *MetricAgent) SendMetric() error {
+	log.Println("Trying to send metrics")
 	serverURL := "http://" + agent.options.addr.Host + ":" + strconv.FormatInt(agent.options.addr.Port, 10)
 
 	client := resty.New()
@@ -92,6 +104,7 @@ func (agent *MetricAgent) SendMetric() error {
 			return fmt.Errorf("an error occurred in the agent when sending metric %s, server returned %d", metricName, resp.StatusCode())
 		}
 	}
+	log.Println("Successfully send all metrics")
 	return nil
 }
 
@@ -106,7 +119,10 @@ func (agent *MetricAgent) Run() {
 
 	if agent.timeState.lastSendMetricTime == defaultTime ||
 		time.Duration(time.Duration(agent.options.reportIntervalSec)*time.Second) <= time.Since(agent.timeState.lastSendMetricTime) {
-		agent.SendMetric()
+		err := agent.SendMetric()
+		if err != nil {
+			log.Fatalf("Error occured while sending metrics to server: %s", err.Error())
+		}
 		agent.timeState.lastSendMetricTime = time.Now()
 	}
 }
@@ -118,6 +134,23 @@ func main() {
 	flag.Int64Var(&options.reportIntervalSec, "r", 10, "Interval of sending metrics to the server")
 	flag.Int64Var(&options.pollIntervalSec, "p", 2, "Interval of polling metrics from runtime")
 	flag.Parse()
+
+	cfg := Config{}
+    err := env.Parse(&cfg)
+    if err != nil {
+        log.Fatalf("Can't parse env variables: %s", err)
+    }
+	if cfg.address != "" {
+		addrParts := strings.Split(cfg.address, ":")
+		port, _ := strconv.ParseInt(addrParts[1], 10, 0)
+		options.addr = netaddr.NetAddress{Host: addrParts[0], Port: port}
+	}
+	if cfg.reportInterval != 0 {
+		options.reportIntervalSec = cfg.reportInterval
+	}
+	if cfg.pollInterval != 0 {
+		options.pollIntervalSec = cfg.pollInterval
+	}
 
 	mAgent := MetricAgent{
 		mStorage:  &storage.MetricStorage{},
