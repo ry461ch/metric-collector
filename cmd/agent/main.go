@@ -106,10 +106,7 @@ func (agent *MetricAgent) Run() {
 
 	if agent.timeState.lastSendMetricTime == defaultTime ||
 		time.Duration(time.Duration(agent.options.reportIntervalSec)*time.Second) <= time.Since(agent.timeState.lastSendMetricTime) {
-		err := agent.SendMetric()
-		if err != nil {
-			panic(err.Error())
-		}
+		agent.SendMetric()
 		agent.timeState.lastSendMetricTime = time.Now()
 	}
 }
