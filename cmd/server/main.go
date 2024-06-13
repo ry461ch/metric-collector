@@ -7,28 +7,29 @@ import (
 	"log"
 	"strings"
 
-	"github.com/caarlos0/env/v11"
+	"github.com/caarlos0/env/v6"
 
 	"github.com/ry461ch/metric-collector/internal/storage"
 	"github.com/ry461ch/metric-collector/internal/net_addr"
 )
 
 type Config struct {
-	address		string `env:"ADDRESS"`
+	Address		string 		`env:"ADDRESS"`
 }
+
 
 func main() {
 	addr := netaddr.NetAddress{Host: "localhost", Port: 8080}
     flag.Var(&addr, "a", "Net address host:port")
     flag.Parse()
 
-	cfg := Config{}
+	var cfg Config
     err := env.Parse(&cfg)
     if err != nil {
-        log.Fatalf("Can't parse env variables: %s", err)
+        log.Fatalf("Can't parse env variables: %s", err.Error())
     }
-	if cfg.address != "" {
-		addrParts := strings.Split(cfg.address, ":")
+	if cfg.Address != "" {
+		addrParts := strings.Split(cfg.Address, ":")
 		port, _ := strconv.ParseInt(addrParts[1], 10, 0)
 		addr = netaddr.NetAddress{Host: addrParts[0], Port: port}
 	}

@@ -11,7 +11,7 @@ import (
 	"github.com/ry461ch/metric-collector/internal/storage"
 )
 
-func TestServer(t *testing.T) {
+func TestPostServer(t *testing.T) {
 	defaultGaugeRequest := "/update/gauge/some_metric/10.0"
 	defaultCounterRequest := "/update/counter/some_metric/10"
 

@@ -12,16 +12,16 @@ import (
 	"strings"
 
 	"gopkg.in/resty.v1"
-	"github.com/caarlos0/env/v11"
+	"github.com/caarlos0/env/v6"
 
 	"github.com/ry461ch/metric-collector/internal/net_addr"
 	"github.com/ry461ch/metric-collector/internal/storage"
 )
 
 type Config struct {
-	address		string `env:"ADDRESS"`
-	reportInterval int64 `env:"REPORT_INTERVAL"`
-	pollInterval int64 `env:"POLL_INTERVAL"`
+	Address		string `env:"ADDRESS"`
+	ReportInterval int64 `env:"REPORT_INTERVAL"`
+	PollInterval int64 `env:"POLL_INTERVAL"`
 }
 
 type Options struct {
@@ -137,16 +137,16 @@ func main() {
     if err != nil {
         log.Fatalf("Can't parse env variables: %s", err)
     }
-	if cfg.address != "" {
-		addrParts := strings.Split(cfg.address, ":")
+	if cfg.Address != "" {
+		addrParts := strings.Split(cfg.Address, ":")
 		port, _ := strconv.ParseInt(addrParts[1], 10, 0)
 		options.addr = netaddr.NetAddress{Host: addrParts[0], Port: port}
 	}
-	if cfg.reportInterval != 0 {
-		options.reportIntervalSec = cfg.reportInterval
+	if cfg.ReportInterval != 0 {
+		options.reportIntervalSec = cfg.ReportInterval
 	}
-	if cfg.pollInterval != 0 {
-		options.pollIntervalSec = cfg.pollInterval
+	if cfg.PollInterval != 0 {
+		options.pollIntervalSec = cfg.PollInterval
 	}
 
 	mAgent := MetricAgent{
