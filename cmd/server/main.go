@@ -4,15 +4,15 @@ import (
 	"flag"
 	"net/http"
     "strconv"
+	"fmt"
 
 	"github.com/ry461ch/metric-collector/internal/storage"
 	"github.com/ry461ch/metric-collector/internal/net_addr"
 )
 
 func main() {
-	addr := new(netaddr.NetAddress)
-    _ = flag.Value(addr)
-    flag.Var(addr, "a", "Net address host:port")
+	addr := netaddr.NetAddress{Host: "localhost", Port: 8080}
+    flag.Var(&addr, "a", "Net address host:port")
     flag.Parse()
 
 	server := MetricUpdateServer{mStorage: &storage.MetricStorage{}}

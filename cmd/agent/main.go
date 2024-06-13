@@ -115,7 +115,7 @@ func (agent *MetricAgent) Run() {
 }
 
 func main() {
-	options := new(Options)
+	options := Options{addr: netaddr.NetAddress{Host: "localhost", Port: 8080}}
 	_ = flag.Value(&options.addr)
 	flag.Var(&options.addr, "a", "Net address host:port")
 	flag.Int64Var(&options.reportIntervalSec, "r", 10, "Interval of sending metrics to the server")
@@ -124,7 +124,7 @@ func main() {
 
 	mAgent := MetricAgent{
 		mStorage:  &storage.MetricStorage{},
-		options:   *options,
+		options:   options,
 		timeState: &TimeState{},
 	}
 	for {
