@@ -1,4 +1,4 @@
-package metric_storage
+package memstorage
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 )
 
 func TestGaugeValues(t *testing.T) {
-	storage := MetricStorage{}
+	storage := MemStorage{}
 
 	storage.UpdateGaugeValue("test", 10.0)
 	storage.UpdateGaugeValue("test", 12.0)
@@ -35,7 +35,7 @@ func TestGaugeValues(t *testing.T) {
 }
 
 func TestCounterValues(t *testing.T) {
-	storage := MetricStorage{}
+	storage := MemStorage{}
 
 	storage.UpdateCounterValue("test", 10)
 	storage.UpdateCounterValue("test", 12)

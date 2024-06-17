@@ -1,4 +1,4 @@
-package server_models
+package parsers
 
 import (
 	"flag"
@@ -9,11 +9,8 @@ import (
 	"github.com/caarlos0/env/v6"
 
 	"github.com/ry461ch/metric-collector/internal/models/netaddr"
+	"github.com/ry461ch/metric-collector/internal/server/config"
 )
-
-type Config struct {
-	Address string `env:"ADDRESS"`
-}
 
 func ParseArgs(addr *netaddr.NetAddress) {
 	flag.Var(addr, "a", "Net address host:port")
@@ -21,7 +18,7 @@ func ParseArgs(addr *netaddr.NetAddress) {
 }
 
 func ParseEnv(addr *netaddr.NetAddress) {
-	var cfg Config
+	var cfg config.Config
 	err := env.Parse(&cfg)
 	if err != nil {
 		log.Fatalf("Can't parse env variables: %s", err.Error())

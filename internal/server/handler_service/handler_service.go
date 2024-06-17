@@ -1,4 +1,4 @@
-package handler_service
+package hndlservice
 
 import (
 	"io"
@@ -14,31 +14,31 @@ type HandlerService struct {
 	MStorage storage.Storage
 }
 
-func (HS *HandlerService) PostGaugeHandler(res http.ResponseWriter, req *http.Request) {
+func (hs *HandlerService) PostGaugeHandler(res http.ResponseWriter, req *http.Request) {
 	metricName := chi.URLParam(req, "name")
 	metricVal, err := strconv.ParseFloat(chi.URLParam(req, "value"), 64)
 	if err != nil {
 		res.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	HS.MStorage.UpdateGaugeValue(metricName, metricVal)
+	hs.MStorage.UpdateGaugeValue(metricName, metricVal)
 	res.WriteHeader(http.StatusOK)
 }
 
-func (HS *HandlerService) PostCounterHandler(res http.ResponseWriter, req *http.Request) {
+func (hs *HandlerService) PostCounterHandler(res http.ResponseWriter, req *http.Request) {
 	metricName := chi.URLParam(req, "name")
 	metricVal, err := strconv.ParseInt(chi.URLParam(req, "value"), 10, 0)
 	if err != nil {
 		res.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	HS.MStorage.UpdateCounterValue(metricName, metricVal)
+	hs.MStorage.UpdateCounterValue(metricName, metricVal)
 	res.WriteHeader(http.StatusOK)
 }
 
-func (HS *HandlerService) GetCounterHandler(res http.ResponseWriter, req *http.Request) {
+func (hs *HandlerService) GetCounterHandler(res http.ResponseWriter, req *http.Request) {
 	metricName := chi.URLParam(req, "name")
-	val, ok := HS.MStorage.GetCounterValue(metricName)
+	val, ok := hs.MStorage.GetCounterValue(metricName)
 
 	if !ok {
 		res.WriteHeader(http.StatusNotFound)
@@ -47,9 +47,9 @@ func (HS *HandlerService) GetCounterHandler(res http.ResponseWriter, req *http.R
 	io.WriteString(res, strconv.FormatInt(val, 10))
 }
 
-func (HS *HandlerService) GetGaugeHandler(res http.ResponseWriter, req *http.Request) {
+func (hs *HandlerService) GetGaugeHandler(res http.ResponseWriter, req *http.Request) {
 	metricName := chi.URLParam(req, "name")
-	val, ok := HS.MStorage.GetGaugeValue(metricName)
+	val, ok := hs.MStorage.GetGaugeValue(metricName)
 
 	if !ok {
 		res.WriteHeader(http.StatusNotFound)
@@ -58,9 +58,9 @@ func (HS *HandlerService) GetGaugeHandler(res http.ResponseWriter, req *http.Req
 	io.WriteString(res, strconv.FormatFloat(val, 'f', -1, 64))
 }
 
-func (HS *HandlerService) GetAllMetricsHandler(res http.ResponseWriter, req *http.Request) {
-	gaugeMetrics := HS.MStorage.GetGaugeValues()
-	counterMetrics := HS.MStorage.GetCounterValues()
+func (hs *HandlerService) GetAllMetricsHandler(res http.ResponseWriter, req *http.Request) {
+	gaugeMetrics := hs.MStorage.GetGaugeValues()
+	counterMetrics := hs.MStorage.GetCounterValues()
 
 	res.Header().Set("Content-Type", "text/html; charset=utf-8")
 

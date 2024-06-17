@@ -3,21 +3,22 @@ package main
 import (
 	"time"
 
-	"github.com/ry461ch/metric-collector/internal/agent"
-	"github.com/ry461ch/metric-collector/internal/models/agent_models"
+	"github.com/ry461ch/metric-collector/internal/agent/runner"
+	"github.com/ry461ch/metric-collector/internal/agent/parsers"
+	"github.com/ry461ch/metric-collector/internal/agent/config"
 	"github.com/ry461ch/metric-collector/internal/models/netaddr"
-	"github.com/ry461ch/metric-collector/internal/storage/metric_storage"
+	"github.com/ry461ch/metric-collector/internal/storage/memory"
 )
 
 func main() {
-	options := agent_models.Options{Addr: netaddr.NetAddress{Host: "localhost", Port: 8080}}
-	agent_models.ParseArgs(&options)
-	agent_models.ParseEnv(&options)
+	options := config.Options{Addr: netaddr.NetAddress{Host: "localhost", Port: 8080}}
+	parsers.ParseArgs(&options)
+	parsers.ParseEnv(&options)
 
-	mAgent := agent.MetricAgent{
-		MStorage:  &metric_storage.MetricStorage{},
+	mAgent := agent.Agent{
+		MStorage:  &memstorage.MemStorage{},
 		Options:   options,
-		TimeState: &agent_models.TimeState{},
+		TimeState: &config.TimeState{},
 	}
 	for {
 		mAgent.Run()

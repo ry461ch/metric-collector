@@ -9,7 +9,7 @@ import (
 	"github.com/ry461ch/metric-collector/internal/server/handler_service"
 )
 
-func Route(service *handler_service.HandlerService) chi.Router {
+func Route(service *hndlservice.HandlerService) chi.Router {
 	router := chi.NewRouter()
 	router.Use(middlewares.ValidateContentType)
 
