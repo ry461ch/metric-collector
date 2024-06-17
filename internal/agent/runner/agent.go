@@ -59,12 +59,12 @@ func (a *Agent) CollectMetric() {
 	log.Println("Successfully got all metrics")
 }
 
-func (ma *Agent) SendMetric() error {
+func (a *Agent) SendMetric() error {
 	log.Println("Trying to send metrics")
-	serverURL := "http://" + ma.Options.Addr.Host + ":" + strconv.FormatInt(ma.Options.Addr.Port, 10)
+	serverURL := "http://" + a.Options.Addr.Host + ":" + strconv.FormatInt(a.Options.Addr.Port, 10)
 
 	client := resty.New()
-	for metricName, val := range ma.MStorage.GetGaugeValues() {
+	for metricName, val := range a.MStorage.GetGaugeValues() {
 		path := "/update/gauge/" + metricName + "/" + strconv.FormatFloat(val, 'f', -1, 64)
 		resp, err := client.R().Post(serverURL + path)
 		if err != nil {
@@ -74,7 +74,7 @@ func (ma *Agent) SendMetric() error {
 			return fmt.Errorf("an error occurred in the agent when sending metric %s, server returned %d", metricName, resp.StatusCode())
 		}
 	}
-	for metricName, val := range ma.MStorage.GetCounterValues() {
+	for metricName, val := range a.MStorage.GetCounterValues() {
 		path := "/update/counter/" + metricName + "/" + strconv.FormatInt(val, 10)
 		resp, err := client.R().Post(serverURL + path)
 		if err != nil {
