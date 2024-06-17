@@ -1,4 +1,4 @@
-package main
+package agent
 
 import (
 	"net/http"
@@ -11,8 +11,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 
-	netaddr "github.com/ry461ch/metric-collector/internal/net_addr"
-	"github.com/ry461ch/metric-collector/internal/storage"
+	"github.com/ry461ch/metric-collector/internal/models/agent_models"
+	"github.com/ry461ch/metric-collector/internal/models/netaddr"
+	"github.com/ry461ch/metric-collector/internal/storage/metric_storage"
 )
 
 type MockServerStorage struct {
@@ -41,8 +42,8 @@ func splitURL(URL string) netaddr.NetAddress {
 }
 
 func TestCollectMetric(t *testing.T) {
-	storage := storage.MetricStorage{}
-	agent := MetricAgent{timeState: &TimeState{}, options: Options{}, mStorage: &storage}
+	storage := metric_storage.MetricStorage{}
+	agent := MetricAgent{TimeState: &agent_models.TimeState{}, Options: agent_models.Options{}, MStorage: &storage}
 	agent.CollectMetric()
 
 	storedGaugeValues := storage.GetGaugeValues()
@@ -66,7 +67,7 @@ func TestSendMetric(t *testing.T) {
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
-	agentStorage := storage.MetricStorage{}
+	agentStorage := metric_storage.MetricStorage{}
 
 	agentStorage.UpdateGaugeValue("test", 10.0)
 	agentStorage.UpdateGaugeValue("test_2", 10.0)
@@ -74,7 +75,7 @@ func TestSendMetric(t *testing.T) {
 	agentStorage.UpdateCounterValue("test_4", 10)
 	agentStorage.UpdateCounterValue("test_5", 7)
 
-	agent := MetricAgent{timeState: &TimeState{}, options: Options{addr: splitURL(srv.URL)}, mStorage: &agentStorage}
+	agent := MetricAgent{TimeState: &agent_models.TimeState{}, Options: agent_models.Options{Addr: splitURL(srv.URL)}, MStorage: &agentStorage}
 
 	agent.SendMetric()
 	assert.Equal(t, 5, len(serverStorage.PathTimesCalled), "Не прошел запрос на сервер")
@@ -87,23 +88,23 @@ func TestRun(t *testing.T) {
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
-	agentStorage := storage.MetricStorage{}
-	options := Options{reportIntervalSec: 6, pollIntervalSec: 3, addr: splitURL(srv.URL)}
-	timeState := TimeState{lastCollectMetricTime: time.Now(), lastSendMetricTime: time.Now()}
-	agent := MetricAgent{timeState: &timeState, options: options, mStorage: &agentStorage}
+	agentStorage := metric_storage.MetricStorage{}
+	options := agent_models.Options{ReportIntervalSec: 6, PollIntervalSec: 3, Addr: splitURL(srv.URL)}
+	timeState := agent_models.TimeState{LastCollectMetricTime: time.Now(), LastSendMetricTime: time.Now()}
+	agent := MetricAgent{TimeState: &timeState, Options: options, MStorage: &agentStorage}
 
 	agent.Run()
 	assert.Nil(t, serverStorage.PathTimesCalled, "Вызвался сервер, хотя еще не должен был")
 	pollCount, _ := agentStorage.GetCounterValue("PollCount")
 	assert.Equal(t, int64(0), pollCount, "Вызвался collect metric, хотя еще не должен был")
-	
-	timeState.lastCollectMetricTime = time.Now().Add(-time.Second * 4)
+
+	timeState.LastCollectMetricTime = time.Now().Add(-time.Second * 4)
 	agent.Run()
 	assert.Nil(t, serverStorage.PathTimesCalled, "Вызвался сервер, хотя еще не должен был")
 	pollCount, _ = agentStorage.GetCounterValue("PollCount")
 	assert.Equal(t, int64(1), pollCount, "Кол-во вызовов collectMetric не совпадает с ожидаемым")
 
-	timeState.lastSendMetricTime = time.Now().Add(-time.Second * 7)
+	timeState.LastSendMetricTime = time.Now().Add(-time.Second * 7)
 	agent.Run()
 	assert.Less(t, 0, len(serverStorage.PathTimesCalled), "Не прошел запрос на сервер")
 	pollCount, _ = agentStorage.GetCounterValue("PollCount")

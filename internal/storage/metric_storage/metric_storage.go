@@ -1,18 +1,7 @@
-package storage
-
-
-type Storage interface {
-	UpdateGaugeValue(key string, value float64)
-	GetGaugeValue(key string) (float64, bool)
-	UpdateCounterValue(key string, value int64)
-	GetCounterValue(key string) (int64, bool)
-
-	GetGaugeValues() map[string] float64
-	GetCounterValues() map[string] int64
-}
+package metric_storage
 
 type MetricStorage struct {
-	counter map[string]int64 
+	counter map[string]int64
 	gauge   map[string]float64
 }
 
@@ -46,14 +35,14 @@ func (storage *MetricStorage) GetCounterValue(key string) (int64, bool) {
 	return val, ok
 }
 
-func (storage *MetricStorage) GetGaugeValues() map[string] float64 {
+func (storage *MetricStorage) GetGaugeValues() map[string]float64 {
 	if storage.gauge == nil {
 		return map[string]float64{}
 	}
 	return storage.gauge
 }
 
-func (storage *MetricStorage) GetCounterValues() map[string] int64 {
+func (storage *MetricStorage) GetCounterValues() map[string]int64 {
 	if storage.counter == nil {
 		return map[string]int64{}
 	}

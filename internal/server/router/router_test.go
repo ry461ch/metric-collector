@@ -1,4 +1,4 @@
-package main
+package router
 
 import (
 	"net/http"
@@ -8,7 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/resty.v1"
 
-	"github.com/ry461ch/metric-collector/internal/storage"
+	"github.com/ry461ch/metric-collector/internal/server/handler_service"
+	"github.com/ry461ch/metric-collector/internal/storage/metric_storage"
 )
 
 func TestPostServer(t *testing.T) {
@@ -36,8 +37,8 @@ func TestPostServer(t *testing.T) {
 
 	client := resty.New()
 
-	updateMetricServer := MetricUpdateServer{mStorage: &storage.MetricStorage{}}
-	router := updateMetricServer.MakeRouter()
+	handlerService := handler_service.HandlerService{MStorage: &metric_storage.MetricStorage{}}
+	router := Route(&handlerService)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
@@ -51,10 +52,10 @@ func TestPostServer(t *testing.T) {
 }
 
 func TestPostGaugeServe(t *testing.T) {
-	memStorage := storage.MetricStorage{}
+	memStorage := metric_storage.MetricStorage{}
 
-	updateMetricServer := MetricUpdateServer{mStorage: &memStorage}
-	router := updateMetricServer.MakeRouter()
+	handlerService := handler_service.HandlerService{MStorage: &memStorage}
+	router := Route(&handlerService)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
@@ -70,10 +71,10 @@ func TestPostGaugeServe(t *testing.T) {
 }
 
 func TestPostCounterServe(t *testing.T) {
-	memStorage := storage.MetricStorage{}
+	memStorage := metric_storage.MetricStorage{}
 
-	updateMetricServer := MetricUpdateServer{mStorage: &memStorage}
-	router := updateMetricServer.MakeRouter()
+	handlerService := handler_service.HandlerService{MStorage: &memStorage}
+	router := Route(&handlerService)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
@@ -89,11 +90,11 @@ func TestPostCounterServe(t *testing.T) {
 }
 
 func TestGetGaugeServe(t *testing.T) {
-	memStorage := storage.MetricStorage{}
+	memStorage := metric_storage.MetricStorage{}
 	memStorage.UpdateGaugeValue("some_metric", 10.5)
 
-	updateMetricServer := MetricUpdateServer{mStorage: &memStorage}
-	router := updateMetricServer.MakeRouter()
+	handlerService := handler_service.HandlerService{MStorage: &memStorage}
+	router := Route(&handlerService)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
@@ -110,11 +111,11 @@ func TestGetGaugeServe(t *testing.T) {
 }
 
 func TestGetCounterServe(t *testing.T) {
-	memStorage := storage.MetricStorage{}
+	memStorage := metric_storage.MetricStorage{}
 	memStorage.UpdateCounterValue("some_metric", 10)
 
-	updateMetricServer := MetricUpdateServer{mStorage: &memStorage}
-	router := updateMetricServer.MakeRouter()
+	handlerService := handler_service.HandlerService{MStorage: &memStorage}
+	router := Route(&handlerService)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
@@ -131,7 +132,7 @@ func TestGetCounterServe(t *testing.T) {
 }
 
 func TestGetAllMetrics(t *testing.T) {
-	memStorage := storage.MetricStorage{}
+	memStorage := metric_storage.MetricStorage{}
 	memStorage.UpdateCounterValue("counter_1", 1)
 	memStorage.UpdateCounterValue("counter_2", 2)
 	memStorage.UpdateGaugeValue("gauge_1", 1)
@@ -139,8 +140,8 @@ func TestGetAllMetrics(t *testing.T) {
 
 	expectedBody := "counter_1 : 1\ncounter_2 : 2\ngauge_1 : 1\ngauge_2 : 2\n"
 
-	updateMetricServer := MetricUpdateServer{mStorage: &memStorage}
-	router := updateMetricServer.MakeRouter()
+	handlerService := handler_service.HandlerService{MStorage: &memStorage}
+	router := Route(&handlerService)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
@@ -154,5 +155,3 @@ func TestGetAllMetrics(t *testing.T) {
 	body := resp.Body()
 	assert.Equal(t, len(expectedBody), len(string(body)), "Неверное значение тела ответа")
 }
-
-// func TestGetAllMetrics

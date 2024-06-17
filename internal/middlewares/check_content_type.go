@@ -1,10 +1,10 @@
-package main
+package middlewares
 
 import (
 	"net/http"
 )
 
-func middlewareValidateContentType(next http.Handler) http.Handler {
+func ValidateContentType(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		contentType := req.Header.Get("Content-Type")
 		if contentType != "" && contentType != "text/plain" {

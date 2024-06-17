@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNetAddr(t *testing.T) {
+func TestNetAddrBase(t *testing.T) {
 	testCases := []struct {
 		testName     string
 		input        string

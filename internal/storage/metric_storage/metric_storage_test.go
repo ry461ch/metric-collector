@@ -1,4 +1,4 @@
-package storage
+package metric_storage
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 )
 
 func TestGaugeValues(t *testing.T) {
-    storage := MetricStorage{}
+	storage := MetricStorage{}
 
 	storage.UpdateGaugeValue("test", 10.0)
 	storage.UpdateGaugeValue("test", 12.0)
@@ -22,7 +22,7 @@ func TestGaugeValues(t *testing.T) {
 	assert.False(t, ok)
 
 	expectedGaugeValues := map[string]float64{
-		"test": 12.0,
+		"test":   12.0,
 		"test_2": 11.6,
 		"test_3": 13.5,
 	}
@@ -35,7 +35,7 @@ func TestGaugeValues(t *testing.T) {
 }
 
 func TestCounterValues(t *testing.T) {
-    storage := MetricStorage{}
+	storage := MetricStorage{}
 
 	storage.UpdateCounterValue("test", 10)
 	storage.UpdateCounterValue("test", 12)
@@ -50,7 +50,7 @@ func TestCounterValues(t *testing.T) {
 	assert.False(t, ok)
 
 	expectedCounterValues := map[string]int64{
-		"test": 22,
+		"test":   22,
 		"test_2": 11,
 		"test_3": 13,
 	}
