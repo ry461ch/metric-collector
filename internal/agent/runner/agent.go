@@ -93,15 +93,18 @@ func (a *Agent) SendMetric() error {
 
 func (a *Agent) Run() {
 	defaultTime := time.Time{}
-	if a.timeState.LastCollectMetricTime == defaultTime ||
-		time.Duration(time.Duration(a.options.PollIntervalSec)*time.Second) <= time.Since(a.timeState.LastCollectMetricTime) {
-		a.CollectMetric()
-		a.timeState.LastCollectMetricTime = time.Now()
-	}
+	for {
+		if a.timeState.LastCollectMetricTime == defaultTime ||
+			time.Duration(time.Duration(a.options.PollIntervalSec)*time.Second) <= time.Since(a.timeState.LastCollectMetricTime) {
+			a.CollectMetric()
+			a.timeState.LastCollectMetricTime = time.Now()
+		}
 
-	if a.timeState.LastSendMetricTime == defaultTime ||
-		time.Duration(time.Duration(a.options.ReportIntervalSec)*time.Second) <= time.Since(a.timeState.LastSendMetricTime) {
-		a.SendMetric()
-		a.timeState.LastSendMetricTime = time.Now()
+		if a.timeState.LastSendMetricTime == defaultTime ||
+			time.Duration(time.Duration(a.options.ReportIntervalSec)*time.Second) <= time.Since(a.timeState.LastSendMetricTime) {
+			a.SendMetric()
+			a.timeState.LastSendMetricTime = time.Now()
+		}
+		time.Sleep(time.Second)
 	}
 }
