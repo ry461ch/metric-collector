@@ -48,7 +48,7 @@ func TestCollectMetric(t *testing.T) {
 		options: config.Options{},
 		mStorage: &mStorage,
 	}
-	agent.CollectMetric()
+	agent.collectMetric()
 
 	storedGaugeValues := mStorage.GetGaugeValues()
 
@@ -59,7 +59,7 @@ func TestCollectMetric(t *testing.T) {
 	val, _ := mStorage.GetCounterValue("PollCount")
 	assert.Equal(t, int64(1), val)
 
-	agent.CollectMetric()
+	agent.collectMetric()
 
 	val, _ = mStorage.GetCounterValue("PollCount")
 	assert.Equal(t, int64(2), val)
@@ -85,7 +85,7 @@ func TestSendMetric(t *testing.T) {
 		mStorage: &agentStorage,
 	}
 
-	agent.SendMetric()
+	agent.sendMetric()
 	assert.Equal(t, 5, len(serverStorage.PathTimesCalled), "Не прошел запрос на сервер")
 	assert.Equal(t, int64(1), serverStorage.PathTimesCalled["/update/gauge/test/10"], "Неверный запрос серверу")
 }
@@ -105,19 +105,19 @@ func TestRun(t *testing.T) {
 		mStorage: &agentStorage,
 	}
 
-	agent.Run()
+	agent.runIteration()
 	assert.Nil(t, serverStorage.PathTimesCalled, "Вызвался сервер, хотя еще не должен был")
 	pollCount, _ := agentStorage.GetCounterValue("PollCount")
 	assert.Equal(t, int64(0), pollCount, "Вызвался collect metric, хотя еще не должен был")
 
 	timeState.LastCollectMetricTime = time.Now().Add(-time.Second * 4)
-	agent.Run()
+	agent.runIteration()
 	assert.Nil(t, serverStorage.PathTimesCalled, "Вызвался сервер, хотя еще не должен был")
 	pollCount, _ = agentStorage.GetCounterValue("PollCount")
 	assert.Equal(t, int64(1), pollCount, "Кол-во вызовов collectMetric не совпадает с ожидаемым")
 
 	timeState.LastSendMetricTime = time.Now().Add(-time.Second * 7)
-	agent.Run()
+	agent.runIteration()
 	assert.Less(t, 0, len(serverStorage.PathTimesCalled), "Не прошел запрос на сервер")
 	pollCount, _ = agentStorage.GetCounterValue("PollCount")
 	assert.Equal(t, int64(1), pollCount, "Кол-во вызовов collectMetric не совпадает с ожидаемым")

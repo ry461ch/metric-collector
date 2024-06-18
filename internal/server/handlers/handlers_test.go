@@ -12,21 +12,21 @@ import (
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
 )
 
-func mockRouter(service *Handlers) chi.Router {
+func mockRouter(handlers *Handlers) chi.Router {
 	router := chi.NewRouter()
-	router.Post("/update/counter/{name}/{value}", service.PostCounterHandler)
-	router.Post("/update/gauge/{name}/{value}", service.PostGaugeHandler)
-	router.Get("/value/counter/{name}", service.GetCounterHandler)
-	router.Get("/value/gauge/{name}", service.GetGaugeHandler)
-	router.Get("/", service.GetAllMetricsHandler)
+	router.Post("/update/counter/{name}/{value}", handlers.PostCounterHandler)
+	router.Post("/update/gauge/{name}/{value}", handlers.PostGaugeHandler)
+	router.Get("/value/counter/{name}", handlers.GetCounterHandler)
+	router.Get("/value/gauge/{name}", handlers.GetGaugeHandler)
+	router.Get("/", handlers.GetAllMetricsHandler)
 	return router
 }
 
 func TestPostGaugeServe(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
 
-	service := Handlers{mStorage: &memStorage}
-	router := mockRouter(&service)
+	handlers := Handlers{mStorage: &memStorage}
+	router := mockRouter(&handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
@@ -44,8 +44,8 @@ func TestPostGaugeServe(t *testing.T) {
 func TestPostCounterServe(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
 
-	service := Handlers{mStorage: &memStorage}
-	router := mockRouter(&service)
+	handlers := Handlers{mStorage: &memStorage}
+	router := mockRouter(&handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
@@ -64,8 +64,8 @@ func TestGetGaugeServe(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
 	memStorage.UpdateGaugeValue("some_metric", 10.5)
 
-	service := Handlers{mStorage: &memStorage}
-	router := mockRouter(&service)
+	handlers := Handlers{mStorage: &memStorage}
+	router := mockRouter(&handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
@@ -85,8 +85,8 @@ func TestGetCounterServe(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
 	memStorage.UpdateCounterValue("some_metric", 10)
 
-	service := Handlers{mStorage: &memStorage}
-	router := mockRouter(&service)
+	handlers := Handlers{mStorage: &memStorage}
+	router := mockRouter(&handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
@@ -111,8 +111,8 @@ func TestGetAllMetrics(t *testing.T) {
 
 	expectedBody := "counter_1 : 1\ncounter_2 : 2\ngauge_1 : 1\ngauge_2 : 2\n"
 
-	service := Handlers{mStorage: &memStorage}
-	router := mockRouter(&service)
+	handlers := Handlers{mStorage: &memStorage}
+	router := mockRouter(&handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 

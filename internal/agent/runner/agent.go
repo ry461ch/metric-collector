@@ -24,7 +24,7 @@ func NewAgent(timeState *config.TimeState, options config.Options, mStorage stor
 	return Agent{timeState: timeState, options: options, mStorage: mStorage}
 }
 
-func (a *Agent) CollectMetric() {
+func (a *Agent) collectMetric() {
 	log.Println("Trying to collect metrics")
 	var rtm runtime.MemStats
 	runtime.ReadMemStats(&rtm)
@@ -62,7 +62,7 @@ func (a *Agent) CollectMetric() {
 	log.Println("Successfully got all metrics")
 }
 
-func (a *Agent) SendMetric() error {
+func (a *Agent) sendMetric() error {
 	log.Println("Trying to send metrics")
 	serverURL := "http://" + a.options.Addr.Host + ":" + strconv.FormatInt(a.options.Addr.Port, 10)
 
@@ -91,20 +91,24 @@ func (a *Agent) SendMetric() error {
 	return nil
 }
 
-func (a *Agent) Run() {
+func (a* Agent) runIteration() {
 	defaultTime := time.Time{}
-	for {
-		if a.timeState.LastCollectMetricTime == defaultTime ||
-			time.Duration(time.Duration(a.options.PollIntervalSec)*time.Second) <= time.Since(a.timeState.LastCollectMetricTime) {
-			a.CollectMetric()
-			a.timeState.LastCollectMetricTime = time.Now()
-		}
+	if a.timeState.LastCollectMetricTime == defaultTime ||
+		time.Duration(time.Duration(a.options.PollIntervalSec)*time.Second) <= time.Since(a.timeState.LastCollectMetricTime) {
+		a.collectMetric()
+		a.timeState.LastCollectMetricTime = time.Now()
+	}
 
-		if a.timeState.LastSendMetricTime == defaultTime ||
-			time.Duration(time.Duration(a.options.ReportIntervalSec)*time.Second) <= time.Since(a.timeState.LastSendMetricTime) {
-			a.SendMetric()
-			a.timeState.LastSendMetricTime = time.Now()
-		}
+	if a.timeState.LastSendMetricTime == defaultTime ||
+		time.Duration(time.Duration(a.options.ReportIntervalSec)*time.Second) <= time.Since(a.timeState.LastSendMetricTime) {
+		a.sendMetric()
+		a.timeState.LastSendMetricTime = time.Now()
+	}
+}
+
+func (a *Agent) Run() {
+	for {
+		a.runIteration()
 		time.Sleep(time.Second)
 	}
 }
