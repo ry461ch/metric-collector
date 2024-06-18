@@ -7,38 +7,174 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/resty.v1"
-
-	"github.com/ry461ch/metric-collector/internal/server/handler_service"
-	"github.com/ry461ch/metric-collector/internal/storage/memory"
 )
 
-func TestPostServer(t *testing.T) {
-	defaultGaugeRequest := "/update/gauge/some_metric/10.0"
-	defaultCounterRequest := "/update/counter/some_metric/10"
+type MockHandlers struct {
+	pathTimesCalled map[string]int64
+}
+
+func NewMockHandlers() MockHandlers {
+	return MockHandlers{pathTimesCalled: map[string]int64{}}
+}
+
+func (m *MockHandlers) PostGaugeHandler(res http.ResponseWriter, req *http.Request) {
+	m.pathTimesCalled["postGauge"] += 1
+}
+
+func (m *MockHandlers) PostCounterHandler(res http.ResponseWriter, req *http.Request) {
+	m.pathTimesCalled["postCounter"] += 1
+}
+
+func (m *MockHandlers) GetGaugeHandler(res http.ResponseWriter, req *http.Request) {
+	m.pathTimesCalled["getGauge"] += 1
+}
+
+func (m *MockHandlers) GetCounterHandler(res http.ResponseWriter, req *http.Request) {
+	m.pathTimesCalled["getCounter"] += 1
+}
+
+func (m *MockHandlers) GetAllMetricsHandler(res http.ResponseWriter, req *http.Request) {
+	m.pathTimesCalled["getAll"] += 1
+}
+
+func TestRouter(t *testing.T) {
+	defaultPostGaugeRequest := "/update/gauge/some_metric/10.0"
+	defaultPostCounterRequest := "/update/counter/some_metric/10"
+	defaultGetGaugeRequest := "/value/gauge/some_metric"
+	defaultGetCounterRequest := "/value/counter/some_metric"
 
 	testCases := []struct {
 		testName     string
 		method       string
 		requestPath  string
 		expectedCode int
+		expectedPathTimesCalled map[string]int64
 	}{
-		{testName: "invalid method for gauge", method: http.MethodGet, requestPath: defaultGaugeRequest, expectedCode: http.StatusMethodNotAllowed},
-		{testName: "invalid method for counter", method: http.MethodDelete, requestPath: defaultCounterRequest, expectedCode: http.StatusMethodNotAllowed},
-		{testName: "ok for gauge", method: http.MethodPost, requestPath: defaultGaugeRequest, expectedCode: http.StatusOK},
-		{testName: "ok for counter", method: http.MethodPost, requestPath: defaultCounterRequest, expectedCode: http.StatusOK},
-		{testName: "no metric name and value for counter", method: http.MethodPost, requestPath: "/update/counter/", expectedCode: http.StatusNotFound},
-		{testName: "no metric name and value for gauge", method: http.MethodPost, requestPath: "/update/gauge/", expectedCode: http.StatusNotFound},
-		{testName: "invalid metric type", method: http.MethodPost, requestPath: "/update/invalid_metric_type", expectedCode: http.StatusBadRequest},
-		{testName: "no metric name for counter", method: http.MethodPost, requestPath: "/update/counter/10", expectedCode: http.StatusBadRequest},
-		{testName: "no metric name for gauge ", method: http.MethodPost, requestPath: "/update/gauge/10", expectedCode: http.StatusBadRequest},
-		{testName: "invalid metric value for counter", method: http.MethodPost, requestPath: "/update/counter/test/10.0", expectedCode: http.StatusBadRequest},
-		{testName: "invalid metric value for gauge", method: http.MethodPost, requestPath: "/update/gauge/test/str", expectedCode: http.StatusBadRequest},
+		{
+			testName: "invalid method",
+			method: http.MethodDelete,
+			requestPath: defaultPostCounterRequest,
+			expectedCode: http.StatusMethodNotAllowed,
+			expectedPathTimesCalled: map[string]int64{},
+		},
+		{
+			testName: "ok for post gauge",
+			method: http.MethodPost,
+			requestPath: defaultPostGaugeRequest,
+			expectedCode: http.StatusOK,
+			expectedPathTimesCalled: map[string]int64{"postGauge": 1},
+		},
+		{
+			testName: "ok for post counter",
+			method: http.MethodPost,
+			requestPath: defaultPostCounterRequest,
+			expectedCode: http.StatusOK,
+			expectedPathTimesCalled: map[string]int64{"postCounter": 1},
+		},
+		{
+			testName: "ok for get counter",
+			method: http.MethodGet,
+			requestPath: defaultGetCounterRequest,
+			expectedCode: http.StatusOK,
+			expectedPathTimesCalled: map[string]int64{"getCounter": 1},
+		},
+		{
+			testName: "ok for get gauge",
+			method: http.MethodGet,
+			requestPath: defaultGetGaugeRequest,
+			expectedCode: http.StatusOK,
+			expectedPathTimesCalled: map[string]int64{"getGauge": 1},
+		},
+		{
+			testName: "ok for get all",
+			method: http.MethodGet,
+			requestPath: "/",
+			expectedCode: http.StatusOK,
+			expectedPathTimesCalled: map[string]int64{"getAll": 1},
+		},
+		{
+			testName: "no metric name and value for post counter",
+			method: http.MethodPost,
+			requestPath: "/update/counter/",
+			expectedCode: http.StatusNotFound,
+			expectedPathTimesCalled: map[string]int64{},
+		},
+		{
+			testName: "no metric name and value for post gauge",
+			method: http.MethodPost,
+			requestPath: "/update/gauge/",
+			expectedCode: http.StatusNotFound,
+			expectedPathTimesCalled: map[string]int64{},
+		},
+		{
+			testName: "invalid metric type for post",
+			method: http.MethodPost,
+			requestPath: "/update/invalid_metric_type",
+			expectedCode: http.StatusBadRequest,
+			expectedPathTimesCalled: map[string]int64{},
+		},
+		{
+			testName: "no metric name for post counter",
+			method: http.MethodPost,
+			requestPath: "/update/counter/10",
+			expectedCode: http.StatusBadRequest,
+			expectedPathTimesCalled: map[string]int64{},
+		},
+		{
+			testName: "no metric name for post gauge",
+			method: http.MethodPost,
+			requestPath: "/update/gauge/10",
+			expectedCode: http.StatusBadRequest,
+			expectedPathTimesCalled: map[string]int64{},
+		},
+		{
+			testName: "invalid metric value for post counter",
+			method: http.MethodPost,
+			requestPath: "/update/counter/test/10.0",
+			expectedCode: http.StatusBadRequest,
+			expectedPathTimesCalled: map[string]int64{},
+		},
+		{
+			testName: "invalid metric value for post gauge",
+			method: http.MethodPost,
+			requestPath: "/update/gauge/test/str",
+			expectedCode: http.StatusBadRequest,
+			expectedPathTimesCalled: map[string]int64{},
+		},
+		{
+			testName: "no metric name for get counter",
+			method: http.MethodGet,
+			requestPath: "/value/counter/",
+			expectedCode: http.StatusNotFound,
+			expectedPathTimesCalled: map[string]int64{},
+		},
+		{
+			testName: "no metric name for get gauge",
+			method: http.MethodGet,
+			requestPath: "/value/gauge/",
+			expectedCode: http.StatusNotFound,
+			expectedPathTimesCalled: map[string]int64{},
+		},
+		{
+			testName: "no metric type for get",
+			method: http.MethodGet,
+			requestPath: "/value/invalid/",
+			expectedCode: http.StatusNotFound,
+			expectedPathTimesCalled: map[string]int64{},
+		},
+		{
+			testName: "bad path for get",
+			method: http.MethodGet,
+			requestPath: "/invalid",
+			expectedCode: http.StatusNotFound,
+			expectedPathTimesCalled: map[string]int64{},
+		},
 	}
 
 	client := resty.New()
 
-	handlerService := hndlservice.HandlerService{MStorage: &memstorage.MemStorage{}}
-	router := Route(&handlerService)
+	handlers := NewMockHandlers()
+	router := NewRouter(&handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
@@ -47,111 +183,12 @@ func TestPostServer(t *testing.T) {
 			resp, err := client.R().Execute(tc.method, srv.URL+tc.requestPath)
 			assert.Nil(t, err, "Сервер вернул 500")
 			assert.Equal(t, tc.expectedCode, resp.StatusCode(), "Код ответа не совпадает с ожидаемым")
+			assert.Equal(t, len(tc.expectedPathTimesCalled), len(handlers.pathTimesCalled), "Запрос прошел до сервиса, хотя не должен был")
+			for k, v := range(handlers.pathTimesCalled) {
+				assert.Contains(t, tc.expectedPathTimesCalled, k, "Неправильно зароутился запрос, отсутствует ключ")
+				assert.Equal(t, tc.expectedPathTimesCalled[k], v, "Неправильно зароутился запрос, не дернулась нужная ручка")
+			}
+			handlers.pathTimesCalled = map[string]int64{}
 		})
 	}
-}
-
-func TestPostGaugeServe(t *testing.T) {
-	memStorage := memstorage.MemStorage{}
-
-	handlerService := hndlservice.HandlerService{MStorage: &memStorage}
-	router := Route(&handlerService)
-	srv := httptest.NewServer(router)
-	defer srv.Close()
-
-	client := resty.New()
-	_, err := client.R().Post(srv.URL + "/update/gauge/some_metric/10.0")
-	assert.Nil(t, err, "Сервер вернул 500")
-
-	_, err = client.R().Post(srv.URL + "/update/gauge/some_metric/12.0")
-	assert.Nil(t, err, "Сервер вернул 500")
-
-	val, _ := memStorage.GetGaugeValue("some_metric")
-	assert.Equal(t, float64(12.0), val, "Сохраненное значение метрики типа gauge не совпадает с ожидаемым")
-}
-
-func TestPostCounterServe(t *testing.T) {
-	memStorage := memstorage.MemStorage{}
-
-	handlerService := hndlservice.HandlerService{MStorage: &memStorage}
-	router := Route(&handlerService)
-	srv := httptest.NewServer(router)
-	defer srv.Close()
-
-	client := resty.New()
-	_, err := client.R().Post(srv.URL + "/update/counter/some_metric/10")
-	assert.Nil(t, err, "Сервер вернул 500")
-
-	_, err = client.R().Post(srv.URL + "/update/counter/some_metric/12")
-	assert.Nil(t, err, "Сервер вернул 500")
-
-	val, _ := memStorage.GetCounterValue("some_metric")
-	assert.Equal(t, int64(22), val, "Сохраненное значение метрики типа counter не совпадает с ожидаемым")
-}
-
-func TestGetGaugeServe(t *testing.T) {
-	memStorage := memstorage.MemStorage{}
-	memStorage.UpdateGaugeValue("some_metric", 10.5)
-
-	handlerService := hndlservice.HandlerService{MStorage: &memStorage}
-	router := Route(&handlerService)
-	srv := httptest.NewServer(router)
-	defer srv.Close()
-
-	client := resty.New()
-	resp, err := client.R().Get(srv.URL + "/value/gauge/some_metric")
-	assert.Nil(t, err, "Сервер вернул 500")
-
-	body := resp.Body()
-	assert.Equal(t, "10.5", string(body), "Неверное значение метрики gauge")
-
-	resp, err = client.R().Get(srv.URL + "/value/counter/undefined")
-	assert.Nil(t, err, "Сервер вернул 500")
-	assert.Equal(t, http.StatusNotFound, resp.StatusCode(), "Нашлась несуществующая метрика")
-}
-
-func TestGetCounterServe(t *testing.T) {
-	memStorage := memstorage.MemStorage{}
-	memStorage.UpdateCounterValue("some_metric", 10)
-
-	handlerService := hndlservice.HandlerService{MStorage: &memStorage}
-	router := Route(&handlerService)
-	srv := httptest.NewServer(router)
-	defer srv.Close()
-
-	client := resty.New()
-	resp, err := client.R().Get(srv.URL + "/value/counter/some_metric")
-	assert.Nil(t, err, "Сервер вернул 500")
-
-	body := resp.Body()
-	assert.Equal(t, "10", string(body), "Неверное значение метрики counter")
-
-	resp, err = client.R().Get(srv.URL + "/value/counter/undefined")
-	assert.Nil(t, err, "Сервер вернул 500")
-	assert.Equal(t, http.StatusNotFound, resp.StatusCode(), "Нашлась несуществующая метрика")
-}
-
-func TestGetAllMetrics(t *testing.T) {
-	memStorage := memstorage.MemStorage{}
-	memStorage.UpdateCounterValue("counter_1", 1)
-	memStorage.UpdateCounterValue("counter_2", 2)
-	memStorage.UpdateGaugeValue("gauge_1", 1)
-	memStorage.UpdateGaugeValue("gauge_2", 2)
-
-	expectedBody := "counter_1 : 1\ncounter_2 : 2\ngauge_1 : 1\ngauge_2 : 2\n"
-
-	handlerService := hndlservice.HandlerService{MStorage: &memStorage}
-	router := Route(&handlerService)
-	srv := httptest.NewServer(router)
-	defer srv.Close()
-
-	client := resty.New()
-	resp, err := client.R().Get(srv.URL + "/")
-	assert.Nil(t, err, "Сервер вернул 500")
-
-	header := resp.Header().Get("Content-Type")
-	assert.Equal(t, "text/html; charset=utf-8", header, "Неверное значение content-type")
-
-	body := resp.Body()
-	assert.Equal(t, len(expectedBody), len(string(body)), "Неверное значение тела ответа")
 }

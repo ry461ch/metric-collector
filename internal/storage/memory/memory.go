@@ -5,6 +5,10 @@ type MemStorage struct {
 	gauge   map[string]float64
 }
 
+func NewMemStorage() MemStorage {
+	return MemStorage{}
+}
+
 func (ms *MemStorage) UpdateGaugeValue(key string, value float64) {
 	if ms.gauge == nil {
 		ms.gauge = map[string]float64{}

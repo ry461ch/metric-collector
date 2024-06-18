@@ -15,11 +15,7 @@ func main() {
 	parsers.ParseArgs(&options)
 	parsers.ParseEnv(&options)
 
-	mAgent := agent.Agent{
-		MStorage:  &memstorage.MemStorage{},
-		Options:   options,
-		TimeState: &config.TimeState{},
-	}
+	mAgent := agent.NewAgent(&config.TimeState{}, options, &memstorage.MemStorage{})
 	for {
 		mAgent.Run()
 		time.Sleep(time.Second)

@@ -1,4 +1,4 @@
-package hndlservice
+package handlers
 
 import (
 	"io"
@@ -6,39 +6,41 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-
-	"github.com/ry461ch/metric-collector/internal/storage"
 )
 
-type HandlerService struct {
-	MStorage storage.Storage
+type Handlers struct {
+	mStorage storage
 }
 
-func (hs *HandlerService) PostGaugeHandler(res http.ResponseWriter, req *http.Request) {
+func NewHandlers(mStorage storage) Handlers {
+	return Handlers{mStorage: mStorage}
+}
+
+func (h *Handlers) PostGaugeHandler(res http.ResponseWriter, req *http.Request) {
 	metricName := chi.URLParam(req, "name")
 	metricVal, err := strconv.ParseFloat(chi.URLParam(req, "value"), 64)
 	if err != nil {
 		res.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	hs.MStorage.UpdateGaugeValue(metricName, metricVal)
+	h.mStorage.UpdateGaugeValue(metricName, metricVal)
 	res.WriteHeader(http.StatusOK)
 }
 
-func (hs *HandlerService) PostCounterHandler(res http.ResponseWriter, req *http.Request) {
+func (h *Handlers) PostCounterHandler(res http.ResponseWriter, req *http.Request) {
 	metricName := chi.URLParam(req, "name")
 	metricVal, err := strconv.ParseInt(chi.URLParam(req, "value"), 10, 0)
 	if err != nil {
 		res.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	hs.MStorage.UpdateCounterValue(metricName, metricVal)
+	h.mStorage.UpdateCounterValue(metricName, metricVal)
 	res.WriteHeader(http.StatusOK)
 }
 
-func (hs *HandlerService) GetCounterHandler(res http.ResponseWriter, req *http.Request) {
+func (h *Handlers) GetCounterHandler(res http.ResponseWriter, req *http.Request) {
 	metricName := chi.URLParam(req, "name")
-	val, ok := hs.MStorage.GetCounterValue(metricName)
+	val, ok := h.mStorage.GetCounterValue(metricName)
 
 	if !ok {
 		res.WriteHeader(http.StatusNotFound)
@@ -47,9 +49,9 @@ func (hs *HandlerService) GetCounterHandler(res http.ResponseWriter, req *http.R
 	io.WriteString(res, strconv.FormatInt(val, 10))
 }
 
-func (hs *HandlerService) GetGaugeHandler(res http.ResponseWriter, req *http.Request) {
+func (h *Handlers) GetGaugeHandler(res http.ResponseWriter, req *http.Request) {
 	metricName := chi.URLParam(req, "name")
-	val, ok := hs.MStorage.GetGaugeValue(metricName)
+	val, ok := h.mStorage.GetGaugeValue(metricName)
 
 	if !ok {
 		res.WriteHeader(http.StatusNotFound)
@@ -58,9 +60,9 @@ func (hs *HandlerService) GetGaugeHandler(res http.ResponseWriter, req *http.Req
 	io.WriteString(res, strconv.FormatFloat(val, 'f', -1, 64))
 }
 
-func (hs *HandlerService) GetAllMetricsHandler(res http.ResponseWriter, req *http.Request) {
-	gaugeMetrics := hs.MStorage.GetGaugeValues()
-	counterMetrics := hs.MStorage.GetCounterValues()
+func (h *Handlers) GetAllMetricsHandler(res http.ResponseWriter, req *http.Request) {
+	gaugeMetrics := h.mStorage.GetGaugeValues()
+	counterMetrics := h.mStorage.GetCounterValues()
 
 	res.Header().Set("Content-Type", "text/html; charset=utf-8")
 

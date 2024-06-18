@@ -42,22 +42,26 @@ func splitURL(URL string) netaddr.NetAddress {
 }
 
 func TestCollectMetric(t *testing.T) {
-	storage := memstorage.MemStorage{}
-	agent := Agent{TimeState: &config.TimeState{}, Options: config.Options{}, MStorage: &storage}
+	mStorage := memstorage.MemStorage{}
+	agent := Agent{
+		timeState: &config.TimeState{},
+		options: config.Options{},
+		mStorage: &mStorage,
+	}
 	agent.CollectMetric()
 
-	storedGaugeValues := storage.GetGaugeValues()
+	storedGaugeValues := mStorage.GetGaugeValues()
 
 	assert.Equal(t, 28, len(storedGaugeValues), "Несовпадает количество отслеживаемых метрик")
 	assert.Contains(t, storedGaugeValues, "NextGC")
 	assert.Contains(t, storedGaugeValues, "HeapIdle")
 	assert.Contains(t, storedGaugeValues, "RandomValue")
-	val, _ := storage.GetCounterValue("PollCount")
+	val, _ := mStorage.GetCounterValue("PollCount")
 	assert.Equal(t, int64(1), val)
 
 	agent.CollectMetric()
 
-	val, _ = storage.GetCounterValue("PollCount")
+	val, _ = mStorage.GetCounterValue("PollCount")
 	assert.Equal(t, int64(2), val)
 }
 
@@ -75,7 +79,11 @@ func TestSendMetric(t *testing.T) {
 	agentStorage.UpdateCounterValue("test_4", 10)
 	agentStorage.UpdateCounterValue("test_5", 7)
 
-	agent := Agent{TimeState: &config.TimeState{}, Options: config.Options{Addr: splitURL(srv.URL)}, MStorage: &agentStorage}
+	agent := Agent{
+		timeState: &config.TimeState{},
+		options: config.Options{Addr: splitURL(srv.URL)},
+		mStorage: &agentStorage,
+	}
 
 	agent.SendMetric()
 	assert.Equal(t, 5, len(serverStorage.PathTimesCalled), "Не прошел запрос на сервер")
@@ -91,7 +99,11 @@ func TestRun(t *testing.T) {
 	agentStorage := memstorage.MemStorage{}
 	options := config.Options{ReportIntervalSec: 6, PollIntervalSec: 3, Addr: splitURL(srv.URL)}
 	timeState := config.TimeState{LastCollectMetricTime: time.Now(), LastSendMetricTime: time.Now()}
-	agent := Agent{TimeState: &timeState, Options: options, MStorage: &agentStorage}
+	agent := Agent{
+		timeState: &timeState,
+		options: options,
+		mStorage: &agentStorage,
+	}
 
 	agent.Run()
 	assert.Nil(t, serverStorage.PathTimesCalled, "Вызвался сервер, хотя еще не должен был")

@@ -6,10 +6,9 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/ry461ch/metric-collector/internal/middlewares"
-	"github.com/ry461ch/metric-collector/internal/server/handler_service"
 )
 
-func Route(service *hndlservice.HandlerService) chi.Router {
+func NewRouter(service service) chi.Router {
 	router := chi.NewRouter()
 	router.Use(middlewares.ValidateContentType)
 
