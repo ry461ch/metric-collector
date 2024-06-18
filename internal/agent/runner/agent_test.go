@@ -20,17 +20,17 @@ type MockServerStorage struct {
 	PathTimesCalled map[string]int64
 }
 
-func (mStorage *MockServerStorage) pathCounter(res http.ResponseWriter, req *http.Request) {
-	if mStorage.PathTimesCalled == nil {
-		mStorage.PathTimesCalled = map[string]int64{}
+func (m *MockServerStorage) pathCounter(res http.ResponseWriter, req *http.Request) {
+	if m.PathTimesCalled == nil {
+		m.PathTimesCalled = map[string]int64{}
 	}
 
-	mStorage.PathTimesCalled[req.URL.Path] += 1
+	m.PathTimesCalled[req.URL.Path] += 1
 }
 
-func (mStorage *MockServerStorage) mockRouter() chi.Router {
+func (m *MockServerStorage) mockRouter() chi.Router {
 	router := chi.NewRouter()
-	router.Post("/*", mStorage.pathCounter)
+	router.Post("/*", m.pathCounter)
 	return router
 }
 
