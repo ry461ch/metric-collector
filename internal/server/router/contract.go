@@ -4,7 +4,7 @@ import (
 	"net/http"
 )
 
-type service interface {
+type metricHandlers interface {
 	PostGaugeHandler(res http.ResponseWriter, req *http.Request)
 	PostCounterHandler(res http.ResponseWriter, req *http.Request)
 	GetCounterHandler(res http.ResponseWriter, req *http.Request)

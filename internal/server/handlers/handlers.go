@@ -12,7 +12,7 @@ type Handlers struct {
 	mStorage storage
 }
 
-func NewHandlers(mStorage storage) Handlers {
+func New(mStorage storage) Handlers {
 	return Handlers{mStorage: mStorage}
 }
 

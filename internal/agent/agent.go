@@ -12,6 +12,8 @@ import (
 	"gopkg.in/resty.v1"
 
 	"github.com/ry461ch/metric-collector/internal/agent/config"
+	"github.com/ry461ch/metric-collector/internal/config/netaddr"
+	"github.com/ry461ch/metric-collector/internal/storage/memory"
 )
 
 type Agent struct {
@@ -20,7 +22,7 @@ type Agent struct {
 	mStorage  storage
 }
 
-func NewAgent(timeState *config.TimeState, options config.Options, mStorage storage) Agent {
+func New(timeState *config.TimeState, options config.Options, mStorage storage) Agent {
 	return Agent{timeState: timeState, options: options, mStorage: mStorage}
 }
 
@@ -106,9 +108,14 @@ func (a* Agent) runIteration() {
 	}
 }
 
-func (a *Agent) Run() {
+func Run() {
+	options := config.Options{Addr: netaddr.NetAddress{Host: "localhost", Port: 8080}}
+	config.ParseArgs(&options)
+	config.ParseEnv(&options)
+
+	mAgent := New(&config.TimeState{}, options, &memstorage.MemStorage{})
 	for {
-		a.runIteration()
+		mAgent.runIteration()
 		time.Sleep(time.Second)
 	}
 }
