@@ -5,17 +5,17 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/ry461ch/metric-collector/internal/middlewares"
+	"github.com/ry461ch/metric-collector/internal/server/middlewares"
 )
 
-func NewRouter(service service) chi.Router {
+func New(mHandlers metricHandlers) chi.Router {
 	router := chi.NewRouter()
-	router.Use(middlewares.ValidateContentType)
+	router.Use(middlewares.WithLogging, middlewares.ValidateContentType)
 
 	router.Route("/update", func(r chi.Router) {
 		r.Route("/counter", func(r chi.Router) {
 			r.Route("/{name:[a-zA-Z0-9-_]+}", func(r chi.Router) {
-				r.Post("/{value:[0-9]+}", service.PostCounterHandler)
+				r.Post("/{value:[0-9]+}", mHandlers.PostCounterHandler)
 				r.Post("/*", func(res http.ResponseWriter, req *http.Request) {
 					res.WriteHeader(http.StatusBadRequest)
 				})
@@ -26,7 +26,7 @@ func NewRouter(service service) chi.Router {
 		})
 		r.Route("/gauge", func(r chi.Router) {
 			r.Route("/{name:[a-zA-Z0-9-_]+}", func(r chi.Router) {
-				r.Post("/{value:[0-9]+\\.?[0-9]*}", service.PostGaugeHandler)
+				r.Post("/{value:[0-9]+\\.?[0-9]*}", mHandlers.PostGaugeHandler)
 				r.Post("/*", func(res http.ResponseWriter, req *http.Request) {
 					res.WriteHeader(http.StatusBadRequest)
 				})
@@ -41,13 +41,13 @@ func NewRouter(service service) chi.Router {
 	})
 	router.Route("/value", func(r chi.Router) {
 		r.Route("/counter", func(r chi.Router) {
-			r.Get("/{name:[a-zA-Z0-9-_]+}", service.GetCounterHandler)
+			r.Get("/{name:[a-zA-Z0-9-_]+}", mHandlers.GetCounterHandler)
 			r.Get("/*", func(res http.ResponseWriter, req *http.Request) {
 				res.WriteHeader(http.StatusNotFound)
 			})
 		})
 		r.Route("/gauge", func(r chi.Router) {
-			r.Get("/{name:[a-zA-Z0-9-_]+}", service.GetGaugeHandler)
+			r.Get("/{name:[a-zA-Z0-9-_]+}", mHandlers.GetGaugeHandler)
 			r.Get("/*", func(res http.ResponseWriter, req *http.Request) {
 				res.WriteHeader(http.StatusNotFound)
 			})
@@ -56,6 +56,6 @@ func NewRouter(service service) chi.Router {
 			res.WriteHeader(http.StatusNotFound)
 		})
 	})
-	router.Get("/", service.GetAllMetricsHandler)
+	router.Get("/", mHandlers.GetAllMetricsHandler)
 	return router
 }

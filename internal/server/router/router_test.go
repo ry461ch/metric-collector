@@ -174,7 +174,7 @@ func TestRouter(t *testing.T) {
 	client := resty.New()
 
 	handlers := NewMockHandlers()
-	router := NewRouter(&handlers)
+	router := New(&handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 

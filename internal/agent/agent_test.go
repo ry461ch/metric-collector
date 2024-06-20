@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/ry461ch/metric-collector/internal/agent/config"
-	"github.com/ry461ch/metric-collector/internal/models/netaddr"
+	"github.com/ry461ch/metric-collector/internal/config/netaddr"
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
 )
 
