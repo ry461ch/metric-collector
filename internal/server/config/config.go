@@ -2,7 +2,6 @@ package config
 
 import (
 	"flag"
-	"log"
 	"strconv"
 	"strings"
 
@@ -46,10 +45,7 @@ func ParseArgs(opt *Options) {
 
 func ParseEnv(opt *Options) {
 	var cfg Config
-	err := env.Parse(&cfg)
-	if err != nil {
-		log.Fatalf("Can't parse env variables: %s", err.Error())
-	}
+	env.Parse(&cfg)
 	if cfg.Address != "" {
 		addrParts := strings.Split(cfg.Address, ":")
 		port, _ := strconv.ParseInt(addrParts[1], 10, 0)
