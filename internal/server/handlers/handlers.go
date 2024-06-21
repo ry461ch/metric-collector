@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
+	"github.com/ry461ch/metric-collector/internal/models/response"
 )
 
 type Handlers struct {
@@ -82,53 +83,76 @@ func (h *Handlers) PostJSONHandler(res http.ResponseWriter, req *http.Request) {
 	var buf bytes.Buffer
 	_, err := buf.ReadFrom(req.Body)
 	if err != nil {
+		resp, _ := json.Marshal(response.ErrorObject{Detail: "can't read input"})
 		res.WriteHeader(http.StatusBadRequest)
+		res.Write(resp)
 		return
 	}
 
 	metric := metrics.Metrics{}
 	if err = json.Unmarshal(buf.Bytes(), &metric); err != nil {
+		resp, _ := json.Marshal(response.ErrorObject{Detail: "bad request format"})
 		res.WriteHeader(http.StatusBadRequest)
+		res.Write(resp)
 		return
 	}
 
 	if metric.ID == "" || metric.MType == "" {
+		resp, _ := json.Marshal(response.ErrorObject{Detail: "empty name or type"})
 		res.WriteHeader(http.StatusBadRequest)
+		res.Write(resp)
 		return
 	}
 
 	switch metric.MType {
 	case "gauge":
 		if metric.Value == nil {
+			resp, _ := json.Marshal(response.ErrorObject{Detail: "empty value for gauge"})
 			res.WriteHeader(http.StatusBadRequest)
+			res.Write(resp)
 			return
 		}
 		h.mStorage.UpdateGaugeValue(metric.ID, *metric.Value)
 	case "counter":
 		if metric.Delta == nil {
+			resp, _ := json.Marshal(response.ErrorObject{Detail: "empty value for counter"})
 			res.WriteHeader(http.StatusBadRequest)
+			res.Write(resp)
 			return
 		}
 		h.mStorage.UpdateCounterValue(metric.ID, *metric.Delta)
 	default:
+		resp, _ := json.Marshal(response.ErrorObject{Detail: "unexpected metric type"})
 		res.WriteHeader(http.StatusBadRequest)
+		res.Write(resp)
 		return
 	}
-	res.Header().Set("Content-Type", "application/json")
+	resp, err := json.Marshal(response.EmptyObject{})
+	if err != nil {
+		resp, _ := json.Marshal(response.ErrorObject{Detail: "Internal server error"})
+        res.WriteHeader(http.StatusInternalServerError)
+		res.Write(resp)
+        return
+    }
 	res.WriteHeader(http.StatusOK)
+	res.Write(resp)
 }
 
 func (h *Handlers) GetJSONHandler(res http.ResponseWriter, req *http.Request) {
 	var buf bytes.Buffer
 	_, err := buf.ReadFrom(req.Body)
 	if err != nil {
+		resp, _ := json.Marshal(response.ErrorObject{Detail: "can't read input"})
 		res.WriteHeader(http.StatusBadRequest)
+		res.Write(resp)
 		return
 	}
 
 	metric := metrics.Metrics{}
 	if err = json.Unmarshal(buf.Bytes(), &metric); err != nil {
+		resp, _ := json.Marshal(response.ErrorObject{Detail: "bad request format"})
 		res.WriteHeader(http.StatusBadRequest)
+		res.Write(resp)
 		return
 	}
 
@@ -136,28 +160,35 @@ func (h *Handlers) GetJSONHandler(res http.ResponseWriter, req *http.Request) {
 	case "gauge":
 		val, ok := h.mStorage.GetGaugeValue(metric.ID)
 		if !ok {
+			resp, _ := json.Marshal(response.ErrorObject{Detail: "gauge metric not found"})
 			res.WriteHeader(http.StatusNotFound)
+			res.Write(resp)
 			return
 		}
 		metric.Value = &val
 	case "counter":
 		val, ok := h.mStorage.GetCounterValue(metric.ID)
 		if !ok {
+			resp, _ := json.Marshal(response.ErrorObject{Detail: "counter metric not found"})
 			res.WriteHeader(http.StatusNotFound)
+			res.Write(resp)
 			return
 		}
 		metric.Delta = &val
 	default:
+		resp, _ := json.Marshal(response.ErrorObject{Detail: "bad metric type"})
 		res.WriteHeader(http.StatusBadRequest)
+		res.Write(resp)
 		return
 	}
 
 	resp, err := json.Marshal(metric)
     if err != nil {
+		resp, _ := json.Marshal(response.ErrorObject{Detail: "Internal server error"})
+		res.Write(resp)
         res.WriteHeader(http.StatusInternalServerError)
         return
     }
-	res.Header().Set("Content-Type", "application/json")
     res.WriteHeader(http.StatusOK)
     res.Write(resp)
 }

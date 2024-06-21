@@ -11,6 +11,7 @@ func ValidateJSONContentType(next http.Handler) http.Handler {
 			res.WriteHeader(http.StatusBadRequest)
 			return
 		}
+		res.Header().Set("Content-Type", "application/json")
 
 		next.ServeHTTP(res, req)
 	})
