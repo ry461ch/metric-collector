@@ -1,12 +1,14 @@
 package agent
 
 import (
+	"bytes"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+	"encoding/json"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -14,23 +16,41 @@ import (
 	"github.com/ry461ch/metric-collector/internal/agent/config"
 	"github.com/ry461ch/metric-collector/internal/config/netaddr"
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
+	"github.com/ry461ch/metric-collector/internal/models/metrics"
 )
 
 type MockServerStorage struct {
-	PathTimesCalled map[string]int64
+	timesCalled int64
+	metricsGauge map[string]float64
+	metricsCounter map[string]int64
 }
 
-func (m *MockServerStorage) pathCounter(res http.ResponseWriter, req *http.Request) {
-	if m.PathTimesCalled == nil {
-		m.PathTimesCalled = map[string]int64{}
+func (m *MockServerStorage) handler(res http.ResponseWriter, req *http.Request) {
+	m.timesCalled += 1
+
+	var buf bytes.Buffer
+	buf.ReadFrom(req.Body)
+	metric := metrics.Metrics{}
+	json.Unmarshal(buf.Bytes(), &metric)
+
+	if m.metricsCounter == nil {
+		m.metricsCounter = map[string]int64{}
+	}
+	if m.metricsGauge == nil {
+		m.metricsGauge = map[string]float64{}
 	}
 
-	m.PathTimesCalled[req.URL.Path] += 1
+	switch metric.MType {
+	case "gauge":
+		m.metricsGauge[metric.ID] = *metric.Value
+	case "counter":
+		m.metricsCounter[metric.ID] = *metric.Delta
+	}
 }
 
 func (m *MockServerStorage) mockRouter() chi.Router {
 	router := chi.NewRouter()
-	router.Post("/*", m.pathCounter)
+	router.Post("/*", m.handler)
 	return router
 }
 
@@ -73,7 +93,7 @@ func TestSendMetric(t *testing.T) {
 
 	agentStorage := memstorage.MemStorage{}
 
-	agentStorage.UpdateGaugeValue("test", 10.0)
+	agentStorage.UpdateGaugeValue("test_1", 10.0)
 	agentStorage.UpdateGaugeValue("test_2", 10.0)
 	agentStorage.UpdateGaugeValue("test_3", 10.0)
 	agentStorage.UpdateCounterValue("test_4", 10)
@@ -85,9 +105,10 @@ func TestSendMetric(t *testing.T) {
 		mStorage: &agentStorage,
 	}
 
-	agent.sendMetric()
-	assert.Equal(t, 5, len(serverStorage.PathTimesCalled), "Не прошел запрос на сервер")
-	assert.Equal(t, int64(1), serverStorage.PathTimesCalled["/update/gauge/test/10"], "Неверный запрос серверу")
+	agent.sendMetrics()
+	assert.Equal(t, int64(5), serverStorage.timesCalled, "Не прошел запрос на сервер")
+	assert.Equal(t, float64(10.0), serverStorage.metricsGauge["test_2"], "Неправильно записалась метрика в хранилище")
+	assert.Equal(t, int64(10), serverStorage.metricsCounter["test_4"], "Неправильно записалась метрика в хранилище")
 }
 
 func TestRun(t *testing.T) {
@@ -106,19 +127,17 @@ func TestRun(t *testing.T) {
 	}
 
 	agent.runIteration()
-	assert.Nil(t, serverStorage.PathTimesCalled, "Вызвался сервер, хотя еще не должен был")
 	pollCount, _ := agentStorage.GetCounterValue("PollCount")
 	assert.Equal(t, int64(0), pollCount, "Вызвался collect metric, хотя еще не должен был")
 
 	timeState.LastCollectMetricTime = time.Now().Add(-time.Second * 4)
 	agent.runIteration()
-	assert.Nil(t, serverStorage.PathTimesCalled, "Вызвался сервер, хотя еще не должен был")
 	pollCount, _ = agentStorage.GetCounterValue("PollCount")
 	assert.Equal(t, int64(1), pollCount, "Кол-во вызовов collectMetric не совпадает с ожидаемым")
 
 	timeState.LastSendMetricTime = time.Now().Add(-time.Second * 7)
 	agent.runIteration()
-	assert.Less(t, 0, len(serverStorage.PathTimesCalled), "Не прошел запрос на сервер")
+	assert.Less(t, int64(0), serverStorage.timesCalled, "Не прошел запрос на сервер")
 	pollCount, _ = agentStorage.GetCounterValue("PollCount")
 	assert.Equal(t, int64(1), pollCount, "Кол-во вызовов collectMetric не совпадает с ожидаемым")
 }

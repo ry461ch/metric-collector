@@ -5,9 +5,11 @@ import (
 )
 
 type metricHandlers interface {
-	PostGaugeHandler(res http.ResponseWriter, req *http.Request)
-	PostCounterHandler(res http.ResponseWriter, req *http.Request)
-	GetCounterHandler(res http.ResponseWriter, req *http.Request)
-	GetGaugeHandler(res http.ResponseWriter, req *http.Request)
-	GetAllMetricsHandler(res http.ResponseWriter, req *http.Request)
+	PostPlainGaugeHandler(res http.ResponseWriter, req *http.Request)
+	PostPlainCounterHandler(res http.ResponseWriter, req *http.Request)
+	GetPlainCounterHandler(res http.ResponseWriter, req *http.Request)
+	GetPlainGaugeHandler(res http.ResponseWriter, req *http.Request)
+	GetPlainAllMetricsHandler(res http.ResponseWriter, req *http.Request)
+	PostJsonHandler(res http.ResponseWriter, req *http.Request)
+	GetJsonHandler(res http.ResponseWriter, req *http.Request)
 }

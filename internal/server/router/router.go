@@ -10,12 +10,13 @@ import (
 
 func New(mHandlers metricHandlers) chi.Router {
 	router := chi.NewRouter()
-	router.Use(middlewares.WithLogging, middlewares.ValidateContentType)
+	router.Use(middlewares.WithLogging)
 
 	router.Route("/update", func(r chi.Router) {
 		r.Route("/counter", func(r chi.Router) {
+			r.Use(middlewares.ValidatePlainContentType)
 			r.Route("/{name:[a-zA-Z0-9-_]+}", func(r chi.Router) {
-				r.Post("/{value:[0-9]+}", mHandlers.PostCounterHandler)
+				r.Post("/{value:[0-9]+}", mHandlers.PostPlainCounterHandler)
 				r.Post("/*", func(res http.ResponseWriter, req *http.Request) {
 					res.WriteHeader(http.StatusBadRequest)
 				})
@@ -25,8 +26,9 @@ func New(mHandlers metricHandlers) chi.Router {
 			})
 		})
 		r.Route("/gauge", func(r chi.Router) {
+			r.Use(middlewares.ValidatePlainContentType)
 			r.Route("/{name:[a-zA-Z0-9-_]+}", func(r chi.Router) {
-				r.Post("/{value:[0-9]+\\.?[0-9]*}", mHandlers.PostGaugeHandler)
+				r.Post("/{value:[0-9]+\\.?[0-9]*}", mHandlers.PostPlainGaugeHandler)
 				r.Post("/*", func(res http.ResponseWriter, req *http.Request) {
 					res.WriteHeader(http.StatusBadRequest)
 				})
@@ -35,27 +37,42 @@ func New(mHandlers metricHandlers) chi.Router {
 				res.WriteHeader(http.StatusNotFound)
 			})
 		})
-		r.Post("/*", func(res http.ResponseWriter, req *http.Request) {
+		r.Route("/", func(r chi.Router) {
+			r.Use(middlewares.ValidateJsonContentType)
+			r.Post("/", mHandlers.PostJsonHandler)
+		})
+		r.Post("/+", func(res http.ResponseWriter, req *http.Request) {
 			res.WriteHeader(http.StatusBadRequest)
 		})
 	})
 	router.Route("/value", func(r chi.Router) {
 		r.Route("/counter", func(r chi.Router) {
-			r.Get("/{name:[a-zA-Z0-9-_]+}", mHandlers.GetCounterHandler)
+			r.Use(middlewares.ValidatePlainContentType)
+
+			r.Get("/{name:[a-zA-Z0-9-_]+}", mHandlers.GetPlainCounterHandler)
 			r.Get("/*", func(res http.ResponseWriter, req *http.Request) {
 				res.WriteHeader(http.StatusNotFound)
 			})
 		})
 		r.Route("/gauge", func(r chi.Router) {
-			r.Get("/{name:[a-zA-Z0-9-_]+}", mHandlers.GetGaugeHandler)
+			r.Use(middlewares.ValidatePlainContentType)
+
+			r.Get("/{name:[a-zA-Z0-9-_]+}", mHandlers.GetPlainGaugeHandler)
 			r.Get("/*", func(res http.ResponseWriter, req *http.Request) {
 				res.WriteHeader(http.StatusNotFound)
 			})
 		})
-		r.Get("/*", func(res http.ResponseWriter, req *http.Request) {
+		r.Route("/", func(r chi.Router) {
+			r.Use(middlewares.ValidateJsonContentType)
+			r.Post("/", mHandlers.GetJsonHandler)
+		})
+		r.Get("/+", func(res http.ResponseWriter, req *http.Request) {
 			res.WriteHeader(http.StatusNotFound)
 		})
 	})
-	router.Get("/", mHandlers.GetAllMetricsHandler)
+	router.Route("/", func(r chi.Router) {
+		r.Use(middlewares.ValidatePlainContentType)
+		router.Get("/", mHandlers.GetPlainAllMetricsHandler)
+	})
 	return router
 }
