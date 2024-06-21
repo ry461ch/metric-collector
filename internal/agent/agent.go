@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -12,6 +13,9 @@ import (
 	"gopkg.in/resty.v1"
 
 	"github.com/ry461ch/metric-collector/internal/agent/config"
+	"github.com/ry461ch/metric-collector/internal/config/netaddr"
+	"github.com/ry461ch/metric-collector/internal/models/metrics"
+	"github.com/ry461ch/metric-collector/internal/storage/memory"
 )
 
 type Agent struct {
@@ -20,7 +24,7 @@ type Agent struct {
 	mStorage  storage
 }
 
-func NewAgent(timeState *config.TimeState, options config.Options, mStorage storage) Agent {
+func New(timeState *config.TimeState, options config.Options, mStorage storage) Agent {
 	return Agent{timeState: timeState, options: options, mStorage: mStorage}
 }
 
@@ -62,29 +66,39 @@ func (a *Agent) collectMetric() {
 	log.Println("Successfully got all metrics")
 }
 
-func (a *Agent) sendMetric() error {
+func (a *Agent) sendMetrics() error {
 	log.Println("Trying to send metrics")
 	serverURL := "http://" + a.options.Addr.Host + ":" + strconv.FormatInt(a.options.Addr.Port, 10)
 
 	client := resty.New()
+
+	metricList := []metrics.Metrics{}
 	for metricName, val := range a.mStorage.GetGaugeValues() {
-		path := "/update/gauge/" + metricName + "/" + strconv.FormatFloat(val, 'f', -1, 64)
-		resp, err := client.R().Post(serverURL + path)
-		if err != nil {
-			return fmt.Errorf("server broken or timeouted: %s", err.Error())
-		}
-		if resp.StatusCode() != http.StatusOK {
-			return fmt.Errorf("an error occurred in the agent when sending metric %s, server returned %d", metricName, resp.StatusCode())
-		}
+		metricList = append(metricList, metrics.Metrics{
+			ID: metricName,
+			MType: "gauge",
+			Value: &val,
+		})
 	}
 	for metricName, val := range a.mStorage.GetCounterValues() {
-		path := "/update/counter/" + metricName + "/" + strconv.FormatInt(val, 10)
-		resp, err := client.R().Post(serverURL + path)
+		metricList = append(metricList, metrics.Metrics{
+			ID: metricName,
+			MType: "counter",
+			Delta: &val,
+		})
+	}
+
+	for _, metric := range(metricList) {
+		req, _ := json.Marshal(metric)
+		resp, err := client.R().
+			SetHeader("Content-Type", "application/json").
+			SetBody(req).
+			Post(serverURL + "/update/")
 		if err != nil {
 			return fmt.Errorf("server broken or timeouted: %s", err.Error())
 		}
 		if resp.StatusCode() != http.StatusOK {
-			return fmt.Errorf("an error occurred in the agent when sending metric %s, server returned %d", metricName, resp.StatusCode())
+			return fmt.Errorf("invalid request, server returned: %d", resp.StatusCode())
 		}
 	}
 	log.Println("Successfully send all metrics")
@@ -101,14 +115,19 @@ func (a* Agent) runIteration() {
 
 	if a.timeState.LastSendMetricTime == defaultTime ||
 		time.Duration(time.Duration(a.options.ReportIntervalSec)*time.Second) <= time.Since(a.timeState.LastSendMetricTime) {
-		a.sendMetric()
+		a.sendMetrics()
 		a.timeState.LastSendMetricTime = time.Now()
 	}
 }
 
-func (a *Agent) Run() {
+func Run() {
+	options := config.Options{Addr: netaddr.NetAddress{Host: "localhost", Port: 8080}}
+	config.ParseArgs(&options)
+	config.ParseEnv(&options)
+
+	mAgent := New(&config.TimeState{}, options, &memstorage.MemStorage{})
 	for {
-		a.runIteration()
+		mAgent.runIteration()
 		time.Sleep(time.Second)
 	}
 }
