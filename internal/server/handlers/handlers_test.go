@@ -18,10 +18,10 @@ func mockRouter(handlers *Handlers) chi.Router {
 	router := chi.NewRouter()
 	router.Post("/update/counter/{name}/{value}", handlers.PostPlainCounterHandler)
 	router.Post("/update/gauge/{name}/{value}", handlers.PostPlainGaugeHandler)
-	router.Post("/update/", handlers.PostJsonHandler)
+	router.Post("/update/", handlers.PostJSONHandler)
 	router.Get("/value/counter/{name}", handlers.GetPlainCounterHandler)
 	router.Get("/value/gauge/{name}", handlers.GetPlainGaugeHandler)
-	router.Post("/value/", handlers.GetJsonHandler)
+	router.Post("/value/", handlers.GetJSONHandler)
 	router.Get("/", handlers.GetPlainAllMetricsHandler)
 	return router
 }
@@ -131,7 +131,7 @@ func TestGetAllMetricsHandler(t *testing.T) {
 	assert.Equal(t, len(expectedBody), len(string(body)), "Неверное значение тела ответа")
 }
 
-func TestPostJsonHandler(t *testing.T) {
+func TestPostJSONHandler(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
 
 	handlers := Handlers{mStorage: &memStorage}

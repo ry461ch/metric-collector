@@ -10,6 +10,6 @@ type metricHandlers interface {
 	GetPlainCounterHandler(res http.ResponseWriter, req *http.Request)
 	GetPlainGaugeHandler(res http.ResponseWriter, req *http.Request)
 	GetPlainAllMetricsHandler(res http.ResponseWriter, req *http.Request)
-	PostJsonHandler(res http.ResponseWriter, req *http.Request)
-	GetJsonHandler(res http.ResponseWriter, req *http.Request)
+	PostJSONHandler(res http.ResponseWriter, req *http.Request)
+	GetJSONHandler(res http.ResponseWriter, req *http.Request)
 }

@@ -45,12 +45,12 @@ func (m *MockHandlers) GetPlainAllMetricsHandler(res http.ResponseWriter, req *h
 	res.WriteHeader(http.StatusOK)
 }
 
-func (m *MockHandlers) PostJsonHandler(res http.ResponseWriter, req *http.Request) {
+func (m *MockHandlers) PostJSONHandler(res http.ResponseWriter, req *http.Request) {
 	m.pathTimesCalled["postJson"] += 1
 	res.WriteHeader(http.StatusOK)
 }
 
-func (m *MockHandlers) GetJsonHandler(res http.ResponseWriter, req *http.Request) {
+func (m *MockHandlers) GetJSONHandler(res http.ResponseWriter, req *http.Request) {
 	m.pathTimesCalled["getJson"] += 1
 	res.WriteHeader(http.StatusOK)
 }

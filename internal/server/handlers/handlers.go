@@ -78,7 +78,7 @@ func (h *Handlers) GetPlainAllMetricsHandler(res http.ResponseWriter, req *http.
 	}
 }
 
-func (h *Handlers) PostJsonHandler(res http.ResponseWriter, req *http.Request) {
+func (h *Handlers) PostJSONHandler(res http.ResponseWriter, req *http.Request) {
 	var buf bytes.Buffer
 	_, err := buf.ReadFrom(req.Body)
 	if err != nil {
@@ -114,10 +114,11 @@ func (h *Handlers) PostJsonHandler(res http.ResponseWriter, req *http.Request) {
 		res.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusOK)
 }
 
-func (h *Handlers) GetJsonHandler(res http.ResponseWriter, req *http.Request) {
+func (h *Handlers) GetJSONHandler(res http.ResponseWriter, req *http.Request) {
 	var buf bytes.Buffer
 	_, err := buf.ReadFrom(req.Body)
 	if err != nil {
@@ -156,6 +157,7 @@ func (h *Handlers) GetJsonHandler(res http.ResponseWriter, req *http.Request) {
         res.WriteHeader(http.StatusInternalServerError)
         return
     }
+	res.Header().Set("Content-Type", "application/json")
     res.WriteHeader(http.StatusOK)
     res.Write(resp)
 }

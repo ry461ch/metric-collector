@@ -38,8 +38,8 @@ func New(mHandlers metricHandlers) chi.Router {
 			})
 		})
 		r.Route("/", func(r chi.Router) {
-			r.Use(middlewares.ValidateJsonContentType)
-			r.Post("/", mHandlers.PostJsonHandler)
+			r.Use(middlewares.ValidateJSONContentType)
+			r.Post("/", mHandlers.PostJSONHandler)
 		})
 		r.Post("/+", func(res http.ResponseWriter, req *http.Request) {
 			res.WriteHeader(http.StatusBadRequest)
@@ -63,8 +63,8 @@ func New(mHandlers metricHandlers) chi.Router {
 			})
 		})
 		r.Route("/", func(r chi.Router) {
-			r.Use(middlewares.ValidateJsonContentType)
-			r.Post("/", mHandlers.GetJsonHandler)
+			r.Use(middlewares.ValidateJSONContentType)
+			r.Post("/", mHandlers.GetJSONHandler)
 		})
 		r.Get("/+", func(res http.ResponseWriter, req *http.Request) {
 			res.WriteHeader(http.StatusNotFound)
