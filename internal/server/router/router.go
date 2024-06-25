@@ -10,7 +10,7 @@ import (
 
 func New(mHandlers metricHandlers) chi.Router {
 	router := chi.NewRouter()
-	router.Use(middlewares.WithLogging)
+	router.Use(middlewares.WithLogging, middlewares.GzipHandle)
 
 	router.Route("/update", func(r chi.Router) {
 		r.Route("/counter", func(r chi.Router) {
