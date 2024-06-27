@@ -11,6 +11,7 @@ import (
 	"gopkg.in/resty.v1"
 
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
+	"github.com/ry461ch/metric-collector/internal/server/config"
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
 )
 
@@ -29,7 +30,7 @@ func mockRouter(handlers *Handlers) chi.Router {
 func TestPostTextGaugeHandler(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
 
-	handlers := Handlers{mStorage: &memStorage}
+	handlers := Handlers{mStorage: &memStorage, options: config.Options{StoreInterval: 1}}
 	router := mockRouter(&handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
@@ -48,7 +49,7 @@ func TestPostTextGaugeHandler(t *testing.T) {
 func TestPostTextCounterHandler(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
 
-	handlers := Handlers{mStorage: &memStorage}
+	handlers := Handlers{mStorage: &memStorage, options: config.Options{StoreInterval: 1}}
 	router := mockRouter(&handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
@@ -68,7 +69,7 @@ func TestGetTextGaugeHandler(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
 	memStorage.UpdateGaugeValue("some_metric", 10.5)
 
-	handlers := Handlers{mStorage: &memStorage}
+	handlers := Handlers{mStorage: &memStorage, options: config.Options{StoreInterval: 1}}
 	router := mockRouter(&handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
@@ -89,7 +90,7 @@ func TestGetTextCounterHandler(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
 	memStorage.UpdateCounterValue("some_metric", 10)
 
-	handlers := Handlers{mStorage: &memStorage}
+	handlers := Handlers{mStorage: &memStorage, options: config.Options{StoreInterval: 1}}
 	router := mockRouter(&handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
@@ -115,7 +116,7 @@ func TestGetAllMetricsHandler(t *testing.T) {
 
 	expectedBody := "counter_1 : 1\ncounter_2 : 2\ngauge_1 : 1\ngauge_2 : 2\n"
 
-	handlers := Handlers{mStorage: &memStorage}
+	handlers := Handlers{mStorage: &memStorage, options: config.Options{StoreInterval: 1}}
 	router := mockRouter(&handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
@@ -134,7 +135,7 @@ func TestGetAllMetricsHandler(t *testing.T) {
 func TestPostJSONHandler(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
 
-	handlers := Handlers{mStorage: &memStorage}
+	handlers := Handlers{mStorage: &memStorage, options: config.Options{StoreInterval: 1}}
 	router := mockRouter(&handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
@@ -151,84 +152,84 @@ func TestPostJSONHandler(t *testing.T) {
 		expectedCode int
 	}{
 		{
-			testName: "ok post gauge",
-			method: http.MethodPost,
+			testName:    "ok post gauge",
+			method:      http.MethodPost,
 			requestPath: "/update/",
 			requestBody: &metrics.Metrics{
-				ID: "test",
+				ID:    "test",
 				MType: "gauge",
 				Value: &defaultValue,
 			},
 			expectedCode: http.StatusOK,
 		},
 		{
-			testName: "ok post counter",
-			method: http.MethodPost,
+			testName:    "ok post counter",
+			method:      http.MethodPost,
 			requestPath: "/update/",
 			requestBody: &metrics.Metrics{
-				ID: "test",
+				ID:    "test",
 				MType: "counter",
 				Delta: &defaultDelta,
 			},
 			expectedCode: http.StatusOK,
 		},
 		{
-			testName: "ok get gauge",
-			method: http.MethodPost,
+			testName:    "ok get gauge",
+			method:      http.MethodPost,
 			requestPath: "/value/",
 			requestBody: &metrics.Metrics{
-				ID: "test",
+				ID:    "test",
 				MType: "gauge",
 			},
 			expectedCode: http.StatusOK,
 		},
 		{
-			testName: "ok get counter",
-			method: http.MethodPost,
+			testName:    "ok get counter",
+			method:      http.MethodPost,
 			requestPath: "/value/",
 			requestBody: &metrics.Metrics{
-				ID: "test",
+				ID:    "test",
 				MType: "counter",
 			},
 			expectedCode: http.StatusOK,
 		},
 		{
-			testName: "invalid type for post",
-			method: http.MethodPost,
+			testName:    "invalid type for post",
+			method:      http.MethodPost,
 			requestPath: "/update/",
 			requestBody: &metrics.Metrics{
-				ID: "test",
+				ID:    "test",
 				MType: "invalid",
 				Value: &defaultValue,
 			},
 			expectedCode: http.StatusBadRequest,
 		},
 		{
-			testName: "invalid type for get",
-			method: http.MethodPost,
+			testName:    "invalid type for get",
+			method:      http.MethodPost,
 			requestPath: "/value/",
 			requestBody: &metrics.Metrics{
-				ID: "test",
+				ID:    "test",
 				MType: "invalid",
 			},
 			expectedCode: http.StatusBadRequest,
 		},
 		{
-			testName: "bad value for post gauge",
-			method: http.MethodPost,
+			testName:    "bad value for post gauge",
+			method:      http.MethodPost,
 			requestPath: "/update/",
 			requestBody: &metrics.Metrics{
-				ID: "test",
+				ID:    "test",
 				MType: "gauge",
 			},
 			expectedCode: http.StatusBadRequest,
 		},
 		{
-			testName: "bad value for post counter",
-			method: http.MethodPost,
+			testName:    "bad value for post counter",
+			method:      http.MethodPost,
 			requestPath: "/update/",
 			requestBody: &metrics.Metrics{
-				ID: "test",
+				ID:    "test",
 				MType: "counter",
 			},
 			expectedCode: http.StatusBadRequest,
@@ -251,7 +252,7 @@ func TestPostJSONHandler(t *testing.T) {
 func TestJsonGaugeStorageHandler(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
 
-	handlers := Handlers{mStorage: &memStorage}
+	handlers := Handlers{mStorage: &memStorage, options: config.Options{StoreInterval: 1}}
 	router := mockRouter(&handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
@@ -260,7 +261,7 @@ func TestJsonGaugeStorageHandler(t *testing.T) {
 
 	val := float64(5.0)
 	metric := &metrics.Metrics{
-		ID: "test",
+		ID:    "test",
 		MType: "gauge",
 		Value: &val,
 	}
@@ -269,7 +270,7 @@ func TestJsonGaugeStorageHandler(t *testing.T) {
 	resp, err := client.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(req).
-		Execute(http.MethodPost, srv.URL + "/update/")
+		Execute(http.MethodPost, srv.URL+"/update/")
 	assert.Nil(t, err, "Сервер вернул 500")
 	assert.Equal(t, http.StatusOK, resp.StatusCode(), "Код ответа не совпадает с ожидаемым")
 
@@ -278,7 +279,7 @@ func TestJsonGaugeStorageHandler(t *testing.T) {
 	resp, err = client.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(req).
-		Execute(http.MethodPost, srv.URL + "/value/")
+		Execute(http.MethodPost, srv.URL+"/value/")
 	assert.Nil(t, err, "Сервер вернул 500")
 	assert.Equal(t, http.StatusOK, resp.StatusCode(), "Код ответа не совпадает с ожидаемым")
 

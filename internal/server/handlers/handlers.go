@@ -9,16 +9,20 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/ry461ch/metric-collector/internal/helpers/metricfilehelper"
+	"github.com/ry461ch/metric-collector/internal/helpers/metricmodelshelper"
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 	"github.com/ry461ch/metric-collector/internal/models/response"
+	"github.com/ry461ch/metric-collector/internal/server/config"
 )
 
 type Handlers struct {
+	options  config.Options
 	mStorage storage
 }
 
-func New(mStorage storage) Handlers {
-	return Handlers{mStorage: mStorage}
+func New(mStorage storage, options config.Options) Handlers {
+	return Handlers{mStorage: mStorage, options: options}
 }
 
 func (h *Handlers) PostPlainGaugeHandler(res http.ResponseWriter, req *http.Request) {
@@ -28,7 +32,15 @@ func (h *Handlers) PostPlainGaugeHandler(res http.ResponseWriter, req *http.Requ
 		res.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	h.mStorage.UpdateGaugeValue(metricName, metricVal)
+	metric := metrics.Metrics{
+		ID:    metricName,
+		MType: "gauge",
+		Value: &metricVal,
+	}
+	metricmodelshelper.SaveMetrics([]metrics.Metrics{metric}, h.mStorage)
+	if h.options.StoreInterval == int64(0) {
+		metricfilehelper.SaveToFile(h.options.FileStoragePath, h.mStorage)
+	}
 	res.WriteHeader(http.StatusOK)
 }
 
@@ -39,7 +51,15 @@ func (h *Handlers) PostPlainCounterHandler(res http.ResponseWriter, req *http.Re
 		res.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	h.mStorage.UpdateCounterValue(metricName, metricVal)
+	metric := metrics.Metrics{
+		ID:    metricName,
+		MType: "counter",
+		Delta: &metricVal,
+	}
+	metricmodelshelper.SaveMetrics([]metrics.Metrics{metric}, h.mStorage)
+	if h.options.StoreInterval == int64(0) {
+		metricfilehelper.SaveToFile(h.options.FileStoragePath, h.mStorage)
+	}
 	res.WriteHeader(http.StatusOK)
 }
 
@@ -97,43 +117,25 @@ func (h *Handlers) PostJSONHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if metric.ID == "" || metric.MType == "" {
-		resp, _ := json.Marshal(response.ErrorObject{Detail: "empty name or type"})
+	err = metricmodelshelper.SaveMetrics([]metrics.Metrics{metric}, h.mStorage)
+	if err != nil {
+		resp, _ := json.Marshal(response.ErrorObject{Detail: "bad request format"})
 		res.WriteHeader(http.StatusBadRequest)
 		res.Write(resp)
 		return
 	}
 
-	switch metric.MType {
-	case "gauge":
-		if metric.Value == nil {
-			resp, _ := json.Marshal(response.ErrorObject{Detail: "empty value for gauge"})
-			res.WriteHeader(http.StatusBadRequest)
+	if h.options.StoreInterval == int64(0) {
+		err = metricfilehelper.SaveToFile(h.options.FileStoragePath, h.mStorage)
+		if err != nil {
+			resp, _ := json.Marshal(response.ErrorObject{Detail: "Internal server error"})
+			res.WriteHeader(http.StatusInternalServerError)
 			res.Write(resp)
 			return
 		}
-		h.mStorage.UpdateGaugeValue(metric.ID, *metric.Value)
-	case "counter":
-		if metric.Delta == nil {
-			resp, _ := json.Marshal(response.ErrorObject{Detail: "empty value for counter"})
-			res.WriteHeader(http.StatusBadRequest)
-			res.Write(resp)
-			return
-		}
-		h.mStorage.UpdateCounterValue(metric.ID, *metric.Delta)
-	default:
-		resp, _ := json.Marshal(response.ErrorObject{Detail: "unexpected metric type"})
-		res.WriteHeader(http.StatusBadRequest)
-		res.Write(resp)
-		return
 	}
-	resp, err := json.Marshal(response.EmptyObject{})
-	if err != nil {
-		resp, _ := json.Marshal(response.ErrorObject{Detail: "Internal server error"})
-        res.WriteHeader(http.StatusInternalServerError)
-		res.Write(resp)
-        return
-    }
+
+	resp, _ := json.Marshal(response.EmptyObject{})
 	res.WriteHeader(http.StatusOK)
 	res.Write(resp)
 }
@@ -183,12 +185,12 @@ func (h *Handlers) GetJSONHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	resp, err := json.Marshal(metric)
-    if err != nil {
+	if err != nil {
 		resp, _ := json.Marshal(response.ErrorObject{Detail: "Internal server error"})
 		res.Write(resp)
-        res.WriteHeader(http.StatusInternalServerError)
-        return
-    }
-    res.WriteHeader(http.StatusOK)
-    res.Write(resp)
+		res.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	res.WriteHeader(http.StatusOK)
+	res.Write(resp)
 }

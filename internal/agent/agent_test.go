@@ -2,26 +2,26 @@ package agent
 
 import (
 	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
-	"encoding/json"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/ry461ch/metric-collector/internal/agent/config"
 	"github.com/ry461ch/metric-collector/internal/config/netaddr"
-	"github.com/ry461ch/metric-collector/internal/storage/memory"
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
+	"github.com/ry461ch/metric-collector/internal/storage/memory"
 )
 
 type MockServerStorage struct {
-	timesCalled int64
-	metricsGauge map[string]float64
+	timesCalled    int64
+	metricsGauge   map[string]float64
 	metricsCounter map[string]int64
 }
 
@@ -64,9 +64,9 @@ func splitURL(URL string) netaddr.NetAddress {
 func TestCollectMetric(t *testing.T) {
 	mStorage := memstorage.MemStorage{}
 	agent := Agent{
-		timeState: &config.TimeState{},
-		options: config.Options{},
-		mStorage: &mStorage,
+		timeState: &TimeState{},
+		options:   config.Options{},
+		mStorage:  &mStorage,
 	}
 	agent.collectMetric()
 
@@ -100,9 +100,9 @@ func TestSendMetric(t *testing.T) {
 	agentStorage.UpdateCounterValue("test_5", 7)
 
 	agent := Agent{
-		timeState: &config.TimeState{},
-		options: config.Options{Addr: splitURL(srv.URL)},
-		mStorage: &agentStorage,
+		timeState: &TimeState{},
+		options:   config.Options{Addr: splitURL(srv.URL)},
+		mStorage:  &agentStorage,
 	}
 
 	agent.sendMetrics()
@@ -119,11 +119,11 @@ func TestRun(t *testing.T) {
 
 	agentStorage := memstorage.MemStorage{}
 	options := config.Options{ReportIntervalSec: 6, PollIntervalSec: 3, Addr: splitURL(srv.URL)}
-	timeState := config.TimeState{LastCollectMetricTime: time.Now(), LastSendMetricTime: time.Now()}
+	timeState := TimeState{LastCollectMetricTime: time.Now(), LastSendMetricTime: time.Now()}
 	agent := Agent{
 		timeState: &timeState,
-		options: options,
-		mStorage: &agentStorage,
+		options:   options,
+		mStorage:  &agentStorage,
 	}
 
 	agent.runIteration()

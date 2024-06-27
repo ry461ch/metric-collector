@@ -14,17 +14,24 @@ import (
 
 	"github.com/ry461ch/metric-collector/internal/agent/config"
 	"github.com/ry461ch/metric-collector/internal/config/netaddr"
-	"github.com/ry461ch/metric-collector/internal/models/metrics"
+	"github.com/ry461ch/metric-collector/internal/helpers/metricmodelshelper"
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
 )
 
-type Agent struct {
-	timeState *config.TimeState
-	options   config.Options
-	mStorage  storage
-}
+type (
+	TimeState struct {
+		LastCollectMetricTime time.Time
+		LastSendMetricTime    time.Time
+	}
 
-func New(timeState *config.TimeState, options config.Options, mStorage storage) Agent {
+	Agent struct {
+		timeState *TimeState
+		options   config.Options
+		mStorage  storage
+	}
+)
+
+func New(timeState *TimeState, options config.Options, mStorage storage) Agent {
 	return Agent{timeState: timeState, options: options, mStorage: mStorage}
 }
 
@@ -72,23 +79,9 @@ func (a *Agent) sendMetrics() error {
 
 	client := resty.New()
 
-	metricList := []metrics.Metrics{}
-	for metricName, val := range a.mStorage.GetGaugeValues() {
-		metricList = append(metricList, metrics.Metrics{
-			ID: metricName,
-			MType: "gauge",
-			Value: &val,
-		})
-	}
-	for metricName, val := range a.mStorage.GetCounterValues() {
-		metricList = append(metricList, metrics.Metrics{
-			ID: metricName,
-			MType: "counter",
-			Delta: &val,
-		})
-	}
+	metricList := metricmodelshelper.ExtractMetrics(a.mStorage)
 
-	for _, metric := range(metricList) {
+	for _, metric := range metricList {
 		req, _ := json.Marshal(metric)
 		resp, err := client.R().
 			SetHeader("Content-Type", "application/json").
@@ -105,7 +98,7 @@ func (a *Agent) sendMetrics() error {
 	return nil
 }
 
-func (a* Agent) runIteration() {
+func (a *Agent) runIteration() {
 	defaultTime := time.Time{}
 	if a.timeState.LastCollectMetricTime == defaultTime ||
 		time.Duration(time.Duration(a.options.PollIntervalSec)*time.Second) <= time.Since(a.timeState.LastCollectMetricTime) {
@@ -125,7 +118,7 @@ func Run() {
 	config.ParseArgs(&options)
 	config.ParseEnv(&options)
 
-	mAgent := New(&config.TimeState{}, options, &memstorage.MemStorage{})
+	mAgent := New(&TimeState{}, options, &memstorage.MemStorage{})
 	for {
 		mAgent.runIteration()
 		time.Sleep(time.Second)

@@ -9,52 +9,52 @@ import (
 )
 
 type (
-    responseData struct {
-        status int
-        size int
-    }
+	responseData struct {
+		status int
+		size   int
+	}
 
-    loggingResponseWriter struct {
-        http.ResponseWriter
-        responseData *responseData
-    }
+	loggingResponseWriter struct {
+		http.ResponseWriter
+		responseData *responseData
+	}
 )
 
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
-    size, err := r.ResponseWriter.Write(b) 
-    r.responseData.size += size
-    return size, err
+	size, err := r.ResponseWriter.Write(b)
+	r.responseData.size += size
+	return size, err
 }
 
 func (r *loggingResponseWriter) WriteHeader(statusCode int) {
-    r.ResponseWriter.WriteHeader(statusCode) 
-    r.responseData.status = statusCode
+	r.ResponseWriter.WriteHeader(statusCode)
+	r.responseData.status = statusCode
 }
 
 func WithLogging(h http.Handler) http.Handler {
-    logFn := func(w http.ResponseWriter, r *http.Request) {
-        start := time.Now()
+	logFn := func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
 
-		responseData := &responseData {
-            status: 0,
-            size: 0,
-        }
-        lw := loggingResponseWriter {
-            ResponseWriter: w,
-            responseData: responseData,
-        }
+		responseData := &responseData{
+			status: 0,
+			size:   0,
+		}
+		lw := loggingResponseWriter{
+			ResponseWriter: w,
+			responseData:   responseData,
+		}
 
-        h.ServeHTTP(&lw, r)
+		h.ServeHTTP(&lw, r)
 
-        duration := time.Since(start)
+		duration := time.Since(start)
 
-        slogger.Sugar.Infoln(
-            "uri", r.RequestURI,
-            "method", r.Method,
-            "status", responseData.status,
-            "duration", duration,
-            "size", responseData.size,
-        )
-    }
-    return http.HandlerFunc(logFn)
+		slogger.Sugar.Infoln(
+			"uri", r.RequestURI,
+			"method", r.Method,
+			"status", responseData.status,
+			"duration", duration,
+			"size", responseData.size,
+		)
+	}
+	return http.HandlerFunc(logFn)
 }

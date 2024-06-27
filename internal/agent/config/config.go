@@ -1,7 +1,6 @@
 package config
 
 import (
-	"time"
 	"flag"
 	"log"
 	"strconv"
@@ -23,11 +22,6 @@ type (
 		ReportIntervalSec int64
 		PollIntervalSec   int64
 		Addr              netaddr.NetAddress
-	}
-
-	TimeState struct {
-		LastCollectMetricTime time.Time
-		LastSendMetricTime    time.Time
 	}
 )
 

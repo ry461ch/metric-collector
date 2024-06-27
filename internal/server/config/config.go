@@ -12,13 +12,19 @@ import (
 )
 
 type Config struct {
-	Address string `env:"ADDRESS"`
-	LogLevelStr string `env:"LOG_LEVEL"`
+	Address         string `env:"ADDRESS"`
+	LogLevelStr     string `env:"LOG_LEVEL"`
+	StoreInterval   int64  `env:"STORE_INTERVAL"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	Restore         bool   `env:"RESTORE"`
 }
 
 type Options struct {
-	Addr netaddr.NetAddress
-	LogLevel zapcore.Level
+	Addr            netaddr.NetAddress
+	LogLevel        zapcore.Level
+	StoreInterval   int64
+	FileStoragePath string
+	Restore         bool
 }
 
 func ParseLogLevel(logLevel string) zapcore.Level {
@@ -39,6 +45,9 @@ func ParseLogLevel(logLevel string) zapcore.Level {
 func ParseArgs(opt *Options) {
 	flag.Var(&opt.Addr, "a", "Net address host:port")
 	logLevelStr := flag.String("l", "INFO", "Log Level")
+	flag.Int64Var(&opt.StoreInterval, "i", 300, "Store interval seconds")
+	flag.StringVar(&opt.FileStoragePath, "f", "/tmp/metrics-db.json", "File storage path")
+	flag.BoolVar(&opt.Restore, "r", true, "Load data from fileStoragePath when server is starting")
 	flag.Parse()
 	opt.LogLevel = ParseLogLevel(*logLevelStr)
 }
