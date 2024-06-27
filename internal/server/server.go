@@ -46,7 +46,7 @@ func Run() {
 	handleService := handlers.New(&mStorage, options)
 	router := router.New(&handleService)
 
-	if !options.Restore {
+	if options.StoreInterval != int64(0) {
 		go http.ListenAndServe(options.Addr.Host+":"+strconv.FormatInt(options.Addr.Port, 10), router)
 
 		// run crontasks

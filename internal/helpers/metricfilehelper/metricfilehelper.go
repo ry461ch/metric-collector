@@ -27,7 +27,12 @@ func SaveToStorage(filePath string, mStorage storage) error {
 		return err
 	}
 
-	err = json.Unmarshal(buf.Bytes(), &metricList)
+	data := buf.Bytes()
+	if len(data) == 0 {
+		return nil
+	}
+
+	err = json.Unmarshal(data, &metricList)
 	if err != nil {
 		return err
 	}
