@@ -35,7 +35,6 @@ func TestBase(t *testing.T) {
 
 	mWriteStorage := memstorage.MemStorage{}
 	metricfilehelper.SaveToStorage(filepath, &mWriteStorage)
-
 	counterVal, _ := mWriteStorage.GetCounterValue("test_1")
 	assert.Equal(t, int64(6), counterVal, "Несовпадают значения counter")
 	gaugeVal, _ := mWriteStorage.GetGaugeValue("test_2")
