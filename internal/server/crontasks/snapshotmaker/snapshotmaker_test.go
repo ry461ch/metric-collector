@@ -9,9 +9,11 @@ import (
 	"github.com/ry461ch/metric-collector/internal/helpers/metricfilehelper"
 	"github.com/ry461ch/metric-collector/internal/server/config"
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
+	"github.com/ry461ch/metric-collector/internal/server/logger"
 )
 
 func TestBase(t *testing.T) {
+	slogger.TestInitialize()
 	mReadStorage := memstorage.MemStorage{}
 	mReadStorage.UpdateCounterValue("test_1", 6)
 	mReadStorage.UpdateGaugeValue("test_2", 5.5)

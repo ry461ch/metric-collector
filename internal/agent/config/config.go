@@ -14,8 +14,8 @@ import (
 type (
 	Config struct {
 		Address        string `env:"ADDRESS"`
-		ReportInterval int64  `env:"REPORT_INTERVAL"`
-		PollInterval   int64  `env:"POLL_INTERVAL"`
+		ReportInterval string `env:"REPORT_INTERVAL"`
+		PollInterval   string `env:"POLL_INTERVAL"`
 	}
 
 	Options struct {
@@ -43,10 +43,10 @@ func ParseEnv(options *Options) {
 		port, _ := strconv.ParseInt(addrParts[1], 10, 0)
 		options.Addr = netaddr.NetAddress{Host: addrParts[0], Port: port}
 	}
-	if cfg.ReportInterval != 0 {
-		options.ReportIntervalSec = cfg.ReportInterval
+	if cfg.ReportInterval != "" {
+		options.ReportIntervalSec, _ = strconv.ParseInt(cfg.ReportInterval, 10, 0)
 	}
-	if cfg.PollInterval != 0 {
-		options.PollIntervalSec = cfg.PollInterval
+	if cfg.PollInterval != "" {
+		options.PollIntervalSec, _ = strconv.ParseInt(cfg.PollInterval, 10, 0)
 	}
 }

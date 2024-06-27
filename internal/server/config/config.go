@@ -14,9 +14,9 @@ import (
 type Config struct {
 	Address         string `env:"ADDRESS"`
 	LogLevelStr     string `env:"LOG_LEVEL"`
-	StoreInterval   int64  `env:"STORE_INTERVAL"`
+	StoreInterval   string `env:"STORE_INTERVAL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
-	Restore         bool   `env:"RESTORE"`
+	Restore         string `env:"RESTORE"`
 }
 
 type Options struct {
@@ -63,5 +63,14 @@ func ParseEnv(opt *Options) {
 	}
 	if cfg.LogLevelStr != "" {
 		opt.LogLevel = ParseLogLevel(cfg.LogLevelStr)
+	}
+	if cfg.StoreInterval != "" {
+		opt.StoreInterval, _ = strconv.ParseInt(cfg.StoreInterval, 10, 0)
+	}
+	if cfg.Restore != "" {
+		opt.Restore, _ = strconv.ParseBool(cfg.Restore)
+	}
+	if cfg.FileStoragePath != "" {
+		opt.FileStoragePath = cfg.FileStoragePath
 	}
 }
