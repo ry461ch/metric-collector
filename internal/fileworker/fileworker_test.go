@@ -18,7 +18,7 @@ func TestBase(t *testing.T) {
 	fileReadWorker.ImportToFile()
 
 	mWriteStorage := memstorage.MemStorage{}
-	fileWriteWorker := New(filePath, &mReadStorage)
+	fileWriteWorker := New(filePath, &mWriteStorage)
 	fileWriteWorker.ExportFromFile()
 
 	counterVal, _ := mWriteStorage.GetCounterValue("test_1")

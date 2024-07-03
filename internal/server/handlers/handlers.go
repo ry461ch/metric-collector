@@ -88,7 +88,7 @@ func (h *Handlers) GetPlainGaugeHandler(res http.ResponseWriter, req *http.Reque
 	metricName := chi.URLParam(req, "name")
 	metric := metrics.Metrics{
 		ID: metricName,
-		MType: "counter",
+		MType: "gauge",
 	}
 	err := h.metricService.GetMetric(&metric)
 
