@@ -34,8 +34,8 @@ type (
 	}
 )
 
-func New(timeState *TimeState, options config.Options, metricStorage *memstorage.MemStorage) Agent {
-	return Agent{
+func New(timeState *TimeState, options config.Options, metricStorage *memstorage.MemStorage) *Agent {
+	return &Agent{
 		timeState: timeState,
 		options: options,
 		metricStorage: metricStorage,
@@ -126,7 +126,7 @@ func Run() {
 	config.ParseArgs(&options)
 	config.ParseEnv(&options)
 
-	mAgent := Agent{timeState: &TimeState{}, options: options, metricStorage: &memstorage.MemStorage{}}
+	mAgent := New(&TimeState{}, options, &memstorage.MemStorage{})
 	for {
 		mAgent.runIteration()
 		time.Sleep(time.Second)

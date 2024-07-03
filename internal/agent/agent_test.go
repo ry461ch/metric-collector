@@ -63,11 +63,7 @@ func splitURL(URL string) netaddr.NetAddress {
 
 func TestCollectMetric(t *testing.T) {
 	metricStorage := memstorage.MemStorage{}
-	agent := Agent{
-		timeState: &TimeState{},
-		options:   config.Options{},
-		metricStorage:  &metricStorage,
-	}
+	agent := New(&TimeState{}, config.Options{}, &metricStorage)
 	agent.collectMetric()
 
 	storedGaugeValues := metricStorage.GetGaugeValues()
@@ -99,11 +95,7 @@ func TestSendMetric(t *testing.T) {
 	agentStorage.UpdateCounterValue("test_4", 10)
 	agentStorage.UpdateCounterValue("test_5", 7)
 
-	agent := Agent{
-		timeState: &TimeState{},
-		options:   config.Options{Addr: splitURL(srv.URL)},
-		metricStorage:  &agentStorage,
-	}
+	agent := New(&TimeState{}, config.Options{Addr: splitURL(srv.URL)}, &agentStorage)
 
 	agent.sendMetrics()
 	assert.Equal(t, int64(5), serverStorage.timesCalled, "Не прошел запрос на сервер")
@@ -120,11 +112,7 @@ func TestRun(t *testing.T) {
 	agentStorage := memstorage.MemStorage{}
 	options := config.Options{ReportIntervalSec: 6, PollIntervalSec: 3, Addr: splitURL(srv.URL)}
 	timeState := TimeState{LastCollectMetricTime: time.Now(), LastSendMetricTime: time.Now()}
-	agent := Agent{
-		timeState: &timeState,
-		options:   options,
-		metricStorage:  &agentStorage,
-	}
+	agent := New(&timeState, options, &agentStorage)
 
 	agent.runIteration()
 	pollCount, _ := agentStorage.GetCounterValue("PollCount")
