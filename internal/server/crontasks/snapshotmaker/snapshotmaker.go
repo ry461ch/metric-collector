@@ -18,6 +18,7 @@ type (
 		options   config.Options
 		timeState *TimeState
 		fileWorker  *fileworker.FileWorker
+		isBreak		bool
 	}
 )
 
@@ -26,6 +27,7 @@ func New(timeState *TimeState, options config.Options, metricStorage storage.Sto
 		timeState: timeState,
 		options: options,
 		fileWorker: fileworker.New(options.FileStoragePath, metricStorage),
+		isBreak: false,
 	}
 }
 
@@ -40,8 +42,12 @@ func (sm *SnapshotMaker) runIteration() {
 }
 
 func (sm *SnapshotMaker) Run() {
-	for {
+	for !sm.isBreak {
 		sm.runIteration()
 		time.Sleep(time.Second)
 	}
+}
+
+func (sm *SnapshotMaker) Break() {
+	sm.isBreak = true
 }

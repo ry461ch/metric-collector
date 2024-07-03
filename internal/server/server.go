@@ -3,6 +3,10 @@ package server
 import (
 	"net/http"
 	"strconv"
+	"os/signal"
+	"os"
+	"sync"
+	"context"
 
 	"github.com/ry461ch/metric-collector/internal/config/netaddr"
 	"github.com/ry461ch/metric-collector/internal/server/config"
@@ -41,11 +45,35 @@ func Run() {
 	router := router.New(handleService)
 
 	if options.StoreInterval != int64(0) {
-		go http.ListenAndServe(options.Addr.Host+":"+strconv.FormatInt(options.Addr.Port, 10), router)
+		var wg sync.WaitGroup
+		wg.Add(3)
+		
+		// run server
+		server := &http.Server{Addr: options.Addr.Host+":"+strconv.FormatInt(options.Addr.Port, 10), Handler: router}
+		go func() {
+			server.ListenAndServe()
+			wg.Done()
+		}()
 
 		// run crontasks
 		snapshotMaker := snapshotmaker.New(&snapshotmaker.TimeState{}, options, &metricStorage)
-		snapshotMaker.Run()
+		go func() {
+			snapshotMaker.Run()
+			wg.Done()
+		}()
+
+		// wait for signal
+		go func() {
+			stop := make(chan os.Signal, 1)
+			signal.Notify(stop, os.Interrupt)
+			<-stop
+			fileWorker.ImportToFile()
+			server.Shutdown(context.Background())
+			snapshotMaker.Break()
+			wg.Done()
+		}()
+
+		wg.Wait()
 	} else {
 		http.ListenAndServe(options.Addr.Host+":"+strconv.FormatInt(options.Addr.Port, 10), router)
 	}
