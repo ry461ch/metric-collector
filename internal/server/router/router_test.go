@@ -6,10 +6,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 	"gopkg.in/resty.v1"
 
-	"github.com/ry461ch/metric-collector/internal/server/logger"
+	"github.com/ry461ch/metric-collector/pkg/logging"
 )
 
 type MockHandlers struct {
@@ -257,13 +256,7 @@ func TestRouter(t *testing.T) {
 			expectedPathTimesCalled: map[string]int64{"getJson": 1},
 		},
 	}
-	logCfg := zap.NewDevelopmentConfig()
-	logCfg.Level.SetLevel(zap.DebugLevel)
-	logger, err := logCfg.Build()
-	if err != nil {
-		panic(err)
-	}
-	slogger.Sugar = *logger.Sugar()
+	logging.Initialize("INFO")
 
 	client := resty.New()
 

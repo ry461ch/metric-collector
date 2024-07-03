@@ -1,4 +1,4 @@
-package metricfilehelper
+package fileworker
 
 import (
 	"testing"
@@ -14,10 +14,12 @@ func TestBase(t *testing.T) {
 	mReadStorage.UpdateGaugeValue("test_2", 5.5)
 
 	filePath := "/tmp/metric_file_helper.json"
-	SaveToFile(filePath, &mReadStorage)
+	fileReadWorker := New(filePath, &mReadStorage)
+	fileReadWorker.ImportToFile()
 
 	mWriteStorage := memstorage.MemStorage{}
-	SaveToStorage(filePath, &mWriteStorage)
+	fileWriteWorker := New(filePath, &mReadStorage)
+	fileWriteWorker.ExportFromFile()
 
 	counterVal, _ := mWriteStorage.GetCounterValue("test_1")
 	assert.Equal(t, int64(6), counterVal, "counter not equal")

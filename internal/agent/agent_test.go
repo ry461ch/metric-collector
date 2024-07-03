@@ -62,26 +62,26 @@ func splitURL(URL string) netaddr.NetAddress {
 }
 
 func TestCollectMetric(t *testing.T) {
-	mStorage := memstorage.MemStorage{}
+	metricStorage := memstorage.MemStorage{}
 	agent := Agent{
 		timeState: &TimeState{},
 		options:   config.Options{},
-		mStorage:  &mStorage,
+		metricStorage:  &metricStorage,
 	}
 	agent.collectMetric()
 
-	storedGaugeValues := mStorage.GetGaugeValues()
+	storedGaugeValues := metricStorage.GetGaugeValues()
 
 	assert.Equal(t, 28, len(storedGaugeValues), "Несовпадает количество отслеживаемых метрик")
 	assert.Contains(t, storedGaugeValues, "NextGC")
 	assert.Contains(t, storedGaugeValues, "HeapIdle")
 	assert.Contains(t, storedGaugeValues, "RandomValue")
-	val, _ := mStorage.GetCounterValue("PollCount")
+	val, _ := metricStorage.GetCounterValue("PollCount")
 	assert.Equal(t, int64(1), val)
 
 	agent.collectMetric()
 
-	val, _ = mStorage.GetCounterValue("PollCount")
+	val, _ = metricStorage.GetCounterValue("PollCount")
 	assert.Equal(t, int64(2), val)
 }
 
@@ -102,7 +102,7 @@ func TestSendMetric(t *testing.T) {
 	agent := Agent{
 		timeState: &TimeState{},
 		options:   config.Options{Addr: splitURL(srv.URL)},
-		mStorage:  &agentStorage,
+		metricStorage:  &agentStorage,
 	}
 
 	agent.sendMetrics()
@@ -123,7 +123,7 @@ func TestRun(t *testing.T) {
 	agent := Agent{
 		timeState: &timeState,
 		options:   options,
-		mStorage:  &agentStorage,
+		metricStorage:  &agentStorage,
 	}
 
 	agent.runIteration()

@@ -30,8 +30,8 @@ func mockRouter(handlers *Handlers) chi.Router {
 func TestPostTextGaugeHandler(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
 
-	handlers := Handlers{mStorage: &memStorage, options: config.Options{StoreInterval: 1}}
-	router := mockRouter(&handlers)
+	handlers := New(&memStorage, config.Options{StoreInterval: 1}, )
+	router := mockRouter(handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
@@ -49,8 +49,8 @@ func TestPostTextGaugeHandler(t *testing.T) {
 func TestPostTextCounterHandler(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
 
-	handlers := Handlers{mStorage: &memStorage, options: config.Options{StoreInterval: 1}}
-	router := mockRouter(&handlers)
+	handlers := New(&memStorage, config.Options{StoreInterval: 1})
+	router := mockRouter(handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
@@ -69,8 +69,8 @@ func TestGetTextGaugeHandler(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
 	memStorage.UpdateGaugeValue("some_metric", 10.5)
 
-	handlers := Handlers{mStorage: &memStorage, options: config.Options{StoreInterval: 1}}
-	router := mockRouter(&handlers)
+	handlers := New(&memStorage, config.Options{StoreInterval: 1})
+	router := mockRouter(handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
@@ -90,8 +90,8 @@ func TestGetTextCounterHandler(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
 	memStorage.UpdateCounterValue("some_metric", 10)
 
-	handlers := Handlers{mStorage: &memStorage, options: config.Options{StoreInterval: 1}}
-	router := mockRouter(&handlers)
+	handlers := New(&memStorage, config.Options{StoreInterval: 1})
+	router := mockRouter(handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
@@ -116,8 +116,8 @@ func TestGetAllMetricsHandler(t *testing.T) {
 
 	expectedBody := "counter_1 : 1\ncounter_2 : 2\ngauge_1 : 1\ngauge_2 : 2\n"
 
-	handlers := Handlers{mStorage: &memStorage, options: config.Options{StoreInterval: 1}}
-	router := mockRouter(&handlers)
+	handlers := New(&memStorage, config.Options{StoreInterval: 1})
+	router := mockRouter(handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
@@ -135,8 +135,8 @@ func TestGetAllMetricsHandler(t *testing.T) {
 func TestPostJSONHandler(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
 
-	handlers := Handlers{mStorage: &memStorage, options: config.Options{StoreInterval: 1}}
-	router := mockRouter(&handlers)
+	handlers := New(&memStorage, config.Options{StoreInterval: 1})
+	router := mockRouter(handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
@@ -252,8 +252,8 @@ func TestPostJSONHandler(t *testing.T) {
 func TestJsonGaugeStorageHandler(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
 
-	handlers := Handlers{mStorage: &memStorage, options: config.Options{StoreInterval: 1}}
-	router := mockRouter(&handlers)
+	handlers := New(&memStorage, config.Options{StoreInterval: 1})
+	router := mockRouter(handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 

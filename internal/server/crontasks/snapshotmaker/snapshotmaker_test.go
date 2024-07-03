@@ -6,14 +6,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/ry461ch/metric-collector/internal/helpers/metricfilehelper"
 	"github.com/ry461ch/metric-collector/internal/server/config"
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
-	"github.com/ry461ch/metric-collector/internal/server/logger"
+	"github.com/ry461ch/metric-collector/pkg/logging"
+	"github.com/ry461ch/metric-collector/internal/fileworker"
 )
 
 func TestBase(t *testing.T) {
-	slogger.TestInitialize()
+	logging.Initialize("DEBUG")
 	mReadStorage := memstorage.MemStorage{}
 	mReadStorage.UpdateCounterValue("test_1", 6)
 	mReadStorage.UpdateGaugeValue("test_2", 5.5)
@@ -22,11 +22,7 @@ func TestBase(t *testing.T) {
 	filepath := "/tmp/metrics-db.json"
 	options := config.Options{StoreInterval: 5, FileStoragePath: filepath}
 	timeState := TimeState{LastSnapshotTime: currentTime}
-	snapshotMaker := SnapshotMaker{
-		timeState: &timeState,
-		options:   options,
-		mStorage:  &mReadStorage,
-	}
+	snapshotMaker := New(&timeState, options, &mReadStorage)
 
 	snapshotMaker.runIteration()
 	assert.Equal(t, currentTime, snapshotMaker.timeState.LastSnapshotTime, "Сработал if, хотя еще не время")
@@ -36,7 +32,9 @@ func TestBase(t *testing.T) {
 	assert.NotEqual(t, currentTime, snapshotMaker.timeState.LastSnapshotTime, "Не сработал if, хотя должен был")
 
 	mWriteStorage := memstorage.MemStorage{}
-	metricfilehelper.SaveToStorage(filepath, &mWriteStorage)
+	fileWriteWorker := fileworker.New(filepath, &mWriteStorage)
+	fileWriteWorker.ExportFromFile()
+
 	counterVal, _ := mWriteStorage.GetCounterValue("test_1")
 	assert.Equal(t, int64(6), counterVal, "Несовпадают значения counter")
 	gaugeVal, _ := mWriteStorage.GetGaugeValue("test_2")

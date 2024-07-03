@@ -1,21 +1,31 @@
-package metricfilehelper
+package fileworker
 
 import (
 	"bytes"
 	"encoding/json"
 	"os"
 
-	"github.com/ry461ch/metric-collector/internal/helpers/metricmodelshelper"
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
+	"github.com/ry461ch/metric-collector/internal/metricservice"
+	"github.com/ry461ch/metric-collector/internal/storage"
 )
+
+type FileWorker struct {
+	filePath string
+	metricService *metricservice.MetricService
+}
+
+func New(filePath string, metricStorage storage.Storage) *FileWorker {
+	return &FileWorker{filePath: filePath, metricService: metricservice.New(metricStorage)}
+}
 
 // Here we write all the data into one variable, because we store
 // all data in memory, so we can assume that we have
 // enough memory to duplicate our metric data
-func SaveToStorage(filePath string, mStorage storage) error {
+func (fw *FileWorker) ExportFromFile() error {
 	metricList := []metrics.Metrics{}
 
-	file, err := os.OpenFile(filePath, os.O_RDONLY|os.O_CREATE, 0666)
+	file, err := os.OpenFile(fw.filePath, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return err
 	}
@@ -37,28 +47,14 @@ func SaveToStorage(filePath string, mStorage storage) error {
 		return err
 	}
 
-	metricmodelshelper.SaveMetrics(metricList, mStorage)
+	fw.metricService.SaveMetrics(metricList)
 	return nil
 }
 
-func SaveToFile(filePath string, mStorage storage) error {
-	metricList := []metrics.Metrics{}
-	for metricName, val := range mStorage.GetGaugeValues() {
-		metricList = append(metricList, metrics.Metrics{
-			ID:    metricName,
-			MType: "gauge",
-			Value: &val,
-		})
-	}
-	for metricName, val := range mStorage.GetCounterValues() {
-		metricList = append(metricList, metrics.Metrics{
-			ID:    metricName,
-			MType: "counter",
-			Delta: &val,
-		})
-	}
+func (fw *FileWorker) ImportToFile() error {
+	metricList := fw.metricService.ExtractMetrics()
 
-	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+	file, err := os.OpenFile(fw.filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		return err
 	}

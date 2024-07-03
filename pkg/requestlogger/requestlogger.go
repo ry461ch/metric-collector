@@ -1,11 +1,11 @@
-package middlewares
+package requestlogger
 
 import (
 	"time"
 
 	"net/http"
 
-	"github.com/ry461ch/metric-collector/internal/server/logger"
+	"github.com/ry461ch/metric-collector/pkg/logging"
 )
 
 type (
@@ -48,7 +48,7 @@ func WithLogging(h http.Handler) http.Handler {
 
 		duration := time.Since(start)
 
-		slogger.Sugar.Infoln(
+		logging.Logger.Infoln(
 			"uri", r.RequestURI,
 			"method", r.Method,
 			"status", responseData.status,

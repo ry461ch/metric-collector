@@ -9,20 +9,27 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/ry461ch/metric-collector/internal/helpers/metricfilehelper"
-	"github.com/ry461ch/metric-collector/internal/helpers/metricmodelshelper"
+	"github.com/ry461ch/metric-collector/internal/metricservice"
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 	"github.com/ry461ch/metric-collector/internal/models/response"
 	"github.com/ry461ch/metric-collector/internal/server/config"
+	"github.com/ry461ch/metric-collector/internal/storage"
+	"github.com/ry461ch/metric-collector/internal/fileworker"
 )
 
 type Handlers struct {
 	options  config.Options
-	mStorage storage
+	metricService *metricservice.MetricService
+	fileWorker  *fileworker.FileWorker
 }
 
-func New(mStorage storage, options config.Options) Handlers {
-	return Handlers{mStorage: mStorage, options: options}
+func New(metricStorage storage.Storage, options config.Options) *Handlers {
+	metricService := metricservice.New(metricStorage)
+	return &Handlers{
+		metricService: metricService,
+		options: options,
+		fileWorker: fileworker.New(options.FileStoragePath, metricStorage),
+	}
 }
 
 func (h *Handlers) PostPlainGaugeHandler(res http.ResponseWriter, req *http.Request) {
@@ -37,9 +44,9 @@ func (h *Handlers) PostPlainGaugeHandler(res http.ResponseWriter, req *http.Requ
 		MType: "gauge",
 		Value: &metricVal,
 	}
-	metricmodelshelper.SaveMetrics([]metrics.Metrics{metric}, h.mStorage)
+	h.metricService.SaveMetrics([]metrics.Metrics{metric})
 	if h.options.StoreInterval == int64(0) {
-		metricfilehelper.SaveToFile(h.options.FileStoragePath, h.mStorage)
+		h.fileWorker.ImportToFile()
 	}
 	res.WriteHeader(http.StatusOK)
 }
@@ -56,46 +63,57 @@ func (h *Handlers) PostPlainCounterHandler(res http.ResponseWriter, req *http.Re
 		MType: "counter",
 		Delta: &metricVal,
 	}
-	metricmodelshelper.SaveMetrics([]metrics.Metrics{metric}, h.mStorage)
+	h.metricService.SaveMetrics([]metrics.Metrics{metric})
 	if h.options.StoreInterval == int64(0) {
-		metricfilehelper.SaveToFile(h.options.FileStoragePath, h.mStorage)
+		h.fileWorker.ImportToFile()
 	}
 	res.WriteHeader(http.StatusOK)
 }
 
 func (h *Handlers) GetPlainCounterHandler(res http.ResponseWriter, req *http.Request) {
 	metricName := chi.URLParam(req, "name")
-	val, ok := h.mStorage.GetCounterValue(metricName)
-
-	if !ok {
+	metric := metrics.Metrics{
+		ID: metricName,
+		MType: "counter",
+	}
+	err := h.metricService.GetMetric(&metric)
+	if err != nil {
 		res.WriteHeader(http.StatusNotFound)
 		return
 	}
-	io.WriteString(res, strconv.FormatInt(val, 10))
+	io.WriteString(res, strconv.FormatInt(*metric.Delta, 10))
 }
 
 func (h *Handlers) GetPlainGaugeHandler(res http.ResponseWriter, req *http.Request) {
 	metricName := chi.URLParam(req, "name")
-	val, ok := h.mStorage.GetGaugeValue(metricName)
+	metric := metrics.Metrics{
+		ID: metricName,
+		MType: "counter",
+	}
+	err := h.metricService.GetMetric(&metric)
 
-	if !ok {
+	if err != nil {
 		res.WriteHeader(http.StatusNotFound)
 		return
 	}
-	io.WriteString(res, strconv.FormatFloat(val, 'f', -1, 64))
+	io.WriteString(res, strconv.FormatFloat(*metric.Value, 'f', -1, 64))
 }
 
 func (h *Handlers) GetPlainAllMetricsHandler(res http.ResponseWriter, req *http.Request) {
-	gaugeMetrics := h.mStorage.GetGaugeValues()
-	counterMetrics := h.mStorage.GetCounterValues()
+	metricList := h.metricService.ExtractMetrics()
 
 	res.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-	for name, val := range gaugeMetrics {
-		io.WriteString(res, name+" : "+strconv.FormatFloat(val, 'f', -1, 64)+"\n")
-	}
-	for name, val := range counterMetrics {
-		io.WriteString(res, name+" : "+strconv.FormatInt(val, 10)+"\n")
+	for _, metric := range metricList {
+		switch metric.MType {
+		case "counter":
+			io.WriteString(res, metric.ID + " : " + strconv.FormatInt(*metric.Delta, 10) + "\n")
+		case "gauge":
+			io.WriteString(res, metric.ID + " : " + strconv.FormatFloat(*metric.Value, 'f', -1, 64) + "\n")
+		default:
+			res.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
 }
 
@@ -117,7 +135,7 @@ func (h *Handlers) PostJSONHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = metricmodelshelper.SaveMetrics([]metrics.Metrics{metric}, h.mStorage)
+	err = h.metricService.SaveMetrics([]metrics.Metrics{metric})
 	if err != nil {
 		resp, _ := json.Marshal(response.ErrorObject{Detail: "bad request format"})
 		res.WriteHeader(http.StatusBadRequest)
@@ -126,7 +144,7 @@ func (h *Handlers) PostJSONHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	if h.options.StoreInterval == int64(0) {
-		err = metricfilehelper.SaveToFile(h.options.FileStoragePath, h.mStorage)
+		err = h.fileWorker.ImportToFile()
 		if err != nil {
 			resp, _ := json.Marshal(response.ErrorObject{Detail: "Internal server error"})
 			res.WriteHeader(http.StatusInternalServerError)
@@ -158,26 +176,14 @@ func (h *Handlers) GetJSONHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	switch metric.MType {
-	case "gauge":
-		val, ok := h.mStorage.GetGaugeValue(metric.ID)
-		if !ok {
-			resp, _ := json.Marshal(response.ErrorObject{Detail: "gauge metric not found"})
+	err = h.metricService.GetMetric(&metric)
+	if err != nil {
+		if err.Error() == "NOT_FOUND" {
+			resp, _ := json.Marshal(response.ErrorObject{Detail: "metric not found"})
 			res.WriteHeader(http.StatusNotFound)
 			res.Write(resp)
 			return
 		}
-		metric.Value = &val
-	case "counter":
-		val, ok := h.mStorage.GetCounterValue(metric.ID)
-		if !ok {
-			resp, _ := json.Marshal(response.ErrorObject{Detail: "counter metric not found"})
-			res.WriteHeader(http.StatusNotFound)
-			res.Write(resp)
-			return
-		}
-		metric.Delta = &val
-	default:
 		resp, _ := json.Marshal(response.ErrorObject{Detail: "bad metric type"})
 		res.WriteHeader(http.StatusBadRequest)
 		res.Write(resp)

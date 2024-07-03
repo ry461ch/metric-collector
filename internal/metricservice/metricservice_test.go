@@ -1,4 +1,4 @@
-package metricmodelshelper
+package metricservice
 
 import (
 	"testing"
@@ -12,11 +12,13 @@ func TestBase(t *testing.T) {
 	mReadStorage := memstorage.MemStorage{}
 	mReadStorage.UpdateCounterValue("test_1", 6)
 	mReadStorage.UpdateGaugeValue("test_2", 5.5)
+	mReadService := MetricService{metricStorage: &mReadStorage}
 
-	metricList := ExtractMetrics(&mReadStorage)
+	metricList := mReadService.ExtractMetrics()
 
 	mWriteStorage := memstorage.MemStorage{}
-	SaveMetrics(metricList, &mWriteStorage)
+	mWriteService := MetricService{metricStorage: &mWriteStorage}
+	mWriteService.SaveMetrics(metricList)
 
 	counterVal, _ := mWriteStorage.GetCounterValue("test_1")
 	assert.Equal(t, int64(6), counterVal, "counter not equal")

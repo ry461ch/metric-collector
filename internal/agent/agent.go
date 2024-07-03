@@ -14,7 +14,7 @@ import (
 
 	"github.com/ry461ch/metric-collector/internal/agent/config"
 	"github.com/ry461ch/metric-collector/internal/config/netaddr"
-	"github.com/ry461ch/metric-collector/internal/helpers/metricmodelshelper"
+	"github.com/ry461ch/metric-collector/internal/metricservice"
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
 )
 
@@ -27,12 +27,20 @@ type (
 	Agent struct {
 		timeState *TimeState
 		options   config.Options
-		mStorage  storage
+		// we don't need to use storage interface here, 
+		// because we will always use memory storage in agent
+		metricStorage  *memstorage.MemStorage
+		metricService  *metricservice.MetricService
 	}
 )
 
-func New(timeState *TimeState, options config.Options, mStorage storage) Agent {
-	return Agent{timeState: timeState, options: options, mStorage: mStorage}
+func New(timeState *TimeState, options config.Options, metricStorage *memstorage.MemStorage) Agent {
+	return Agent{
+		timeState: timeState,
+		options: options,
+		metricStorage: metricStorage,
+		metricService: metricservice.New(metricStorage),
+	}
 }
 
 func (a *Agent) collectMetric() {
@@ -40,36 +48,36 @@ func (a *Agent) collectMetric() {
 	var rtm runtime.MemStats
 	runtime.ReadMemStats(&rtm)
 
-	a.mStorage.UpdateGaugeValue("Alloc", float64(rtm.Alloc))
-	a.mStorage.UpdateGaugeValue("BuckHashSys", float64(rtm.BuckHashSys))
-	a.mStorage.UpdateGaugeValue("Frees", float64(rtm.Frees))
-	a.mStorage.UpdateGaugeValue("GCCPUFraction", float64(rtm.GCCPUFraction))
-	a.mStorage.UpdateGaugeValue("GCSys", float64(rtm.GCSys))
-	a.mStorage.UpdateGaugeValue("HeapAlloc", float64(rtm.HeapAlloc))
-	a.mStorage.UpdateGaugeValue("HeapIdle", float64(rtm.HeapIdle))
-	a.mStorage.UpdateGaugeValue("HeapInuse", float64(rtm.HeapInuse))
-	a.mStorage.UpdateGaugeValue("HeapObjects", float64(rtm.HeapObjects))
-	a.mStorage.UpdateGaugeValue("HeapReleased", float64(rtm.HeapReleased))
-	a.mStorage.UpdateGaugeValue("HeapSys", float64(rtm.HeapSys))
-	a.mStorage.UpdateGaugeValue("LastGC", float64(rtm.LastGC))
-	a.mStorage.UpdateGaugeValue("Lookups", float64(rtm.Lookups))
-	a.mStorage.UpdateGaugeValue("MCacheInuse", float64(rtm.MCacheInuse))
-	a.mStorage.UpdateGaugeValue("MCacheSys", float64(rtm.MCacheSys))
-	a.mStorage.UpdateGaugeValue("MSpanInuse", float64(rtm.MSpanInuse))
-	a.mStorage.UpdateGaugeValue("MSpanSys", float64(rtm.MSpanSys))
-	a.mStorage.UpdateGaugeValue("Mallocs", float64(rtm.Mallocs))
-	a.mStorage.UpdateGaugeValue("NextGC", float64(rtm.NextGC))
-	a.mStorage.UpdateGaugeValue("NumForcedGC", float64(rtm.NumForcedGC))
-	a.mStorage.UpdateGaugeValue("NumGC", float64(rtm.NumGC))
-	a.mStorage.UpdateGaugeValue("OtherSys", float64(rtm.OtherSys))
-	a.mStorage.UpdateGaugeValue("PauseTotalNs", float64(rtm.PauseTotalNs))
-	a.mStorage.UpdateGaugeValue("StackInuse", float64(rtm.StackInuse))
-	a.mStorage.UpdateGaugeValue("StackSys", float64(rtm.StackSys))
-	a.mStorage.UpdateGaugeValue("Sys", float64(rtm.Sys))
-	a.mStorage.UpdateGaugeValue("TotalAlloc", float64(rtm.TotalAlloc))
+	a.metricStorage.UpdateGaugeValue("Alloc", float64(rtm.Alloc))
+	a.metricStorage.UpdateGaugeValue("BuckHashSys", float64(rtm.BuckHashSys))
+	a.metricStorage.UpdateGaugeValue("Frees", float64(rtm.Frees))
+	a.metricStorage.UpdateGaugeValue("GCCPUFraction", float64(rtm.GCCPUFraction))
+	a.metricStorage.UpdateGaugeValue("GCSys", float64(rtm.GCSys))
+	a.metricStorage.UpdateGaugeValue("HeapAlloc", float64(rtm.HeapAlloc))
+	a.metricStorage.UpdateGaugeValue("HeapIdle", float64(rtm.HeapIdle))
+	a.metricStorage.UpdateGaugeValue("HeapInuse", float64(rtm.HeapInuse))
+	a.metricStorage.UpdateGaugeValue("HeapObjects", float64(rtm.HeapObjects))
+	a.metricStorage.UpdateGaugeValue("HeapReleased", float64(rtm.HeapReleased))
+	a.metricStorage.UpdateGaugeValue("HeapSys", float64(rtm.HeapSys))
+	a.metricStorage.UpdateGaugeValue("LastGC", float64(rtm.LastGC))
+	a.metricStorage.UpdateGaugeValue("Lookups", float64(rtm.Lookups))
+	a.metricStorage.UpdateGaugeValue("MCacheInuse", float64(rtm.MCacheInuse))
+	a.metricStorage.UpdateGaugeValue("MCacheSys", float64(rtm.MCacheSys))
+	a.metricStorage.UpdateGaugeValue("MSpanInuse", float64(rtm.MSpanInuse))
+	a.metricStorage.UpdateGaugeValue("MSpanSys", float64(rtm.MSpanSys))
+	a.metricStorage.UpdateGaugeValue("Mallocs", float64(rtm.Mallocs))
+	a.metricStorage.UpdateGaugeValue("NextGC", float64(rtm.NextGC))
+	a.metricStorage.UpdateGaugeValue("NumForcedGC", float64(rtm.NumForcedGC))
+	a.metricStorage.UpdateGaugeValue("NumGC", float64(rtm.NumGC))
+	a.metricStorage.UpdateGaugeValue("OtherSys", float64(rtm.OtherSys))
+	a.metricStorage.UpdateGaugeValue("PauseTotalNs", float64(rtm.PauseTotalNs))
+	a.metricStorage.UpdateGaugeValue("StackInuse", float64(rtm.StackInuse))
+	a.metricStorage.UpdateGaugeValue("StackSys", float64(rtm.StackSys))
+	a.metricStorage.UpdateGaugeValue("Sys", float64(rtm.Sys))
+	a.metricStorage.UpdateGaugeValue("TotalAlloc", float64(rtm.TotalAlloc))
 
-	a.mStorage.UpdateCounterValue("PollCount", 1)
-	a.mStorage.UpdateGaugeValue("RandomValue", rand.Float64())
+	a.metricStorage.UpdateCounterValue("PollCount", 1)
+	a.metricStorage.UpdateGaugeValue("RandomValue", rand.Float64())
 	log.Println("Successfully got all metrics")
 }
 
@@ -79,7 +87,7 @@ func (a *Agent) sendMetrics() error {
 
 	client := resty.New()
 
-	metricList := metricmodelshelper.ExtractMetrics(a.mStorage)
+	metricList := a.metricService.ExtractMetrics()
 
 	for _, metric := range metricList {
 		req, _ := json.Marshal(metric)
@@ -118,7 +126,7 @@ func Run() {
 	config.ParseArgs(&options)
 	config.ParseEnv(&options)
 
-	mAgent := New(&TimeState{}, options, &memstorage.MemStorage{})
+	mAgent := Agent{timeState: &TimeState{}, options: options, metricStorage: &memstorage.MemStorage{}}
 	for {
 		mAgent.runIteration()
 		time.Sleep(time.Second)
