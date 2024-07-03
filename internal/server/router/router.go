@@ -6,7 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/ry461ch/metric-collector/pkg/middlewares/compressor"
-	"github.com/ry461ch/metric-collector/pkg/logging/requestlogger"
+	"github.com/ry461ch/metric-collector/pkg/logging/middleware"
 	"github.com/ry461ch/metric-collector/pkg/middlewares/contenttypes"
 )
 
