@@ -4,10 +4,12 @@ import (
 	"net/http"
 )
 
-type service interface {
-	PostGaugeHandler(res http.ResponseWriter, req *http.Request)
-	PostCounterHandler(res http.ResponseWriter, req *http.Request)
-	GetCounterHandler(res http.ResponseWriter, req *http.Request)
-	GetGaugeHandler(res http.ResponseWriter, req *http.Request)
-	GetAllMetricsHandler(res http.ResponseWriter, req *http.Request)
+type metricHandlers interface {
+	PostPlainGaugeHandler(res http.ResponseWriter, req *http.Request)
+	PostPlainCounterHandler(res http.ResponseWriter, req *http.Request)
+	GetPlainCounterHandler(res http.ResponseWriter, req *http.Request)
+	GetPlainGaugeHandler(res http.ResponseWriter, req *http.Request)
+	GetPlainAllMetricsHandler(res http.ResponseWriter, req *http.Request)
+	PostJSONHandler(res http.ResponseWriter, req *http.Request)
+	GetJSONHandler(res http.ResponseWriter, req *http.Request)
 }

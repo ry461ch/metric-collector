@@ -1,32 +1,37 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/resty.v1"
-	"github.com/go-chi/chi/v5"
 
+	"github.com/ry461ch/metric-collector/internal/models/metrics"
+	"github.com/ry461ch/metric-collector/internal/server/config"
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
 )
 
 func mockRouter(handlers *Handlers) chi.Router {
 	router := chi.NewRouter()
-	router.Post("/update/counter/{name}/{value}", handlers.PostCounterHandler)
-	router.Post("/update/gauge/{name}/{value}", handlers.PostGaugeHandler)
-	router.Get("/value/counter/{name}", handlers.GetCounterHandler)
-	router.Get("/value/gauge/{name}", handlers.GetGaugeHandler)
-	router.Get("/", handlers.GetAllMetricsHandler)
+	router.Post("/update/counter/{name}/{value}", handlers.PostPlainCounterHandler)
+	router.Post("/update/gauge/{name}/{value}", handlers.PostPlainGaugeHandler)
+	router.Post("/update/", handlers.PostJSONHandler)
+	router.Get("/value/counter/{name}", handlers.GetPlainCounterHandler)
+	router.Get("/value/gauge/{name}", handlers.GetPlainGaugeHandler)
+	router.Post("/value/", handlers.GetJSONHandler)
+	router.Get("/", handlers.GetPlainAllMetricsHandler)
 	return router
 }
 
-func TestPostGaugeServe(t *testing.T) {
+func TestPostTextGaugeHandler(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
 
-	handlers := Handlers{mStorage: &memStorage}
-	router := mockRouter(&handlers)
+	handlers := New(&memStorage, config.Options{StoreInterval: 1}, )
+	router := mockRouter(handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
@@ -41,11 +46,11 @@ func TestPostGaugeServe(t *testing.T) {
 	assert.Equal(t, float64(12.0), val, "Сохраненное значение метрики типа gauge не совпадает с ожидаемым")
 }
 
-func TestPostCounterServe(t *testing.T) {
+func TestPostTextCounterHandler(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
 
-	handlers := Handlers{mStorage: &memStorage}
-	router := mockRouter(&handlers)
+	handlers := New(&memStorage, config.Options{StoreInterval: 1})
+	router := mockRouter(handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
@@ -60,12 +65,12 @@ func TestPostCounterServe(t *testing.T) {
 	assert.Equal(t, int64(22), val, "Сохраненное значение метрики типа counter не совпадает с ожидаемым")
 }
 
-func TestGetGaugeServe(t *testing.T) {
+func TestGetTextGaugeHandler(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
 	memStorage.UpdateGaugeValue("some_metric", 10.5)
 
-	handlers := Handlers{mStorage: &memStorage}
-	router := mockRouter(&handlers)
+	handlers := New(&memStorage, config.Options{StoreInterval: 1})
+	router := mockRouter(handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
@@ -81,12 +86,12 @@ func TestGetGaugeServe(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode(), "Нашлась несуществующая метрика")
 }
 
-func TestGetCounterServe(t *testing.T) {
+func TestGetTextCounterHandler(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
 	memStorage.UpdateCounterValue("some_metric", 10)
 
-	handlers := Handlers{mStorage: &memStorage}
-	router := mockRouter(&handlers)
+	handlers := New(&memStorage, config.Options{StoreInterval: 1})
+	router := mockRouter(handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
@@ -102,7 +107,7 @@ func TestGetCounterServe(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode(), "Нашлась несуществующая метрика")
 }
 
-func TestGetAllMetrics(t *testing.T) {
+func TestGetAllMetricsHandler(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
 	memStorage.UpdateCounterValue("counter_1", 1)
 	memStorage.UpdateCounterValue("counter_2", 2)
@@ -111,8 +116,8 @@ func TestGetAllMetrics(t *testing.T) {
 
 	expectedBody := "counter_1 : 1\ncounter_2 : 2\ngauge_1 : 1\ngauge_2 : 2\n"
 
-	handlers := Handlers{mStorage: &memStorage}
-	router := mockRouter(&handlers)
+	handlers := New(&memStorage, config.Options{StoreInterval: 1})
+	router := mockRouter(handlers)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
@@ -125,4 +130,159 @@ func TestGetAllMetrics(t *testing.T) {
 
 	body := resp.Body()
 	assert.Equal(t, len(expectedBody), len(string(body)), "Неверное значение тела ответа")
+}
+
+func TestPostJSONHandler(t *testing.T) {
+	memStorage := memstorage.MemStorage{}
+
+	handlers := New(&memStorage, config.Options{StoreInterval: 1})
+	router := mockRouter(handlers)
+	srv := httptest.NewServer(router)
+	defer srv.Close()
+
+	client := resty.New()
+
+	defaultValue := float64(5.5)
+	defaultDelta := int64(7)
+	testCases := []struct {
+		testName     string
+		method       string
+		requestPath  string
+		requestBody  *metrics.Metrics
+		expectedCode int
+	}{
+		{
+			testName:    "ok post gauge",
+			method:      http.MethodPost,
+			requestPath: "/update/",
+			requestBody: &metrics.Metrics{
+				ID:    "test",
+				MType: "gauge",
+				Value: &defaultValue,
+			},
+			expectedCode: http.StatusOK,
+		},
+		{
+			testName:    "ok post counter",
+			method:      http.MethodPost,
+			requestPath: "/update/",
+			requestBody: &metrics.Metrics{
+				ID:    "test",
+				MType: "counter",
+				Delta: &defaultDelta,
+			},
+			expectedCode: http.StatusOK,
+		},
+		{
+			testName:    "ok get gauge",
+			method:      http.MethodPost,
+			requestPath: "/value/",
+			requestBody: &metrics.Metrics{
+				ID:    "test",
+				MType: "gauge",
+			},
+			expectedCode: http.StatusOK,
+		},
+		{
+			testName:    "ok get counter",
+			method:      http.MethodPost,
+			requestPath: "/value/",
+			requestBody: &metrics.Metrics{
+				ID:    "test",
+				MType: "counter",
+			},
+			expectedCode: http.StatusOK,
+		},
+		{
+			testName:    "invalid type for post",
+			method:      http.MethodPost,
+			requestPath: "/update/",
+			requestBody: &metrics.Metrics{
+				ID:    "test",
+				MType: "invalid",
+				Value: &defaultValue,
+			},
+			expectedCode: http.StatusBadRequest,
+		},
+		{
+			testName:    "invalid type for get",
+			method:      http.MethodPost,
+			requestPath: "/value/",
+			requestBody: &metrics.Metrics{
+				ID:    "test",
+				MType: "invalid",
+			},
+			expectedCode: http.StatusBadRequest,
+		},
+		{
+			testName:    "bad value for post gauge",
+			method:      http.MethodPost,
+			requestPath: "/update/",
+			requestBody: &metrics.Metrics{
+				ID:    "test",
+				MType: "gauge",
+			},
+			expectedCode: http.StatusBadRequest,
+		},
+		{
+			testName:    "bad value for post counter",
+			method:      http.MethodPost,
+			requestPath: "/update/",
+			requestBody: &metrics.Metrics{
+				ID:    "test",
+				MType: "counter",
+			},
+			expectedCode: http.StatusBadRequest,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
+			req, _ := json.Marshal(tc.requestBody)
+			resp, err := client.R().
+				SetHeader("Content-Type", "application/json").
+				SetBody(req).
+				Execute(tc.method, srv.URL+tc.requestPath)
+			assert.Nil(t, err, "Сервер вернул 500")
+			assert.Equal(t, tc.expectedCode, resp.StatusCode(), "Код ответа не совпадает с ожидаемым")
+		})
+	}
+}
+
+func TestJsonGaugeStorageHandler(t *testing.T) {
+	memStorage := memstorage.MemStorage{}
+
+	handlers := New(&memStorage, config.Options{StoreInterval: 1})
+	router := mockRouter(handlers)
+	srv := httptest.NewServer(router)
+	defer srv.Close()
+
+	client := resty.New()
+
+	val := float64(5.0)
+	metric := &metrics.Metrics{
+		ID:    "test",
+		MType: "gauge",
+		Value: &val,
+	}
+
+	req, _ := json.Marshal(metric)
+	resp, err := client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(req).
+		Execute(http.MethodPost, srv.URL+"/update/")
+	assert.Nil(t, err, "Сервер вернул 500")
+	assert.Equal(t, http.StatusOK, resp.StatusCode(), "Код ответа не совпадает с ожидаемым")
+
+	metric.Value = nil
+	req, _ = json.Marshal(metric)
+	resp, err = client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(req).
+		Execute(http.MethodPost, srv.URL+"/value/")
+	assert.Nil(t, err, "Сервер вернул 500")
+	assert.Equal(t, http.StatusOK, resp.StatusCode(), "Код ответа не совпадает с ожидаемым")
+
+	json.Unmarshal(resp.Body(), metric)
+	assert.Equal(t, val, *metric.Value, "Неверно сохранилась метрика")
 }
