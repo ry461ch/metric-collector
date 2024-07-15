@@ -39,7 +39,7 @@ func ParseArgs(cfg *Config) {
 }
 
 func ParseEnv(cfg *Config) {
-	err := env.Parse(&cfg)
+	err := env.Parse(cfg)
 	if err != nil {
 		log.Fatalf("Can't parse env variables: %s", err)
 	}
