@@ -2,20 +2,20 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 	"strconv"
 	"time"
-	"context"
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/ry461ch/metric-collector/internal/app/server/config"
+	"github.com/ry461ch/metric-collector/internal/fileworker"
 	"github.com/ry461ch/metric-collector/internal/metricservice"
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 	"github.com/ry461ch/metric-collector/internal/models/response"
-	"github.com/ry461ch/metric-collector/internal/app/server/config"
-	"github.com/ry461ch/metric-collector/internal/fileworker"
 )
 
 type Handlers struct {

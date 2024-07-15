@@ -1,9 +1,8 @@
 package metricservice
 
 import (
-	"errors"
 	"context"
-	"log"
+	"errors"
 
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 	"github.com/ry461ch/metric-collector/internal/storage"
@@ -19,7 +18,6 @@ func New(metricStorage storage.Storage) *MetricService {
 
 func (ms *MetricService) SaveMetrics(ctx context.Context, metricList []metrics.Metrics) error {
 	if ms.metricStorage == nil {
-		log.Println("im here 1")
 		return errors.New("INTERNAL_SERVER_ERROR")
 	}
 	for _, metric := range metricList {
@@ -37,7 +35,6 @@ func (ms *MetricService) SaveMetrics(ctx context.Context, metricList []metrics.M
 			}
 			err := ms.metricStorage.UpdateGaugeValue(ctx, metric.ID, *metric.Value)
 			if err != nil {
-				log.Println("im here 2", err.Error())
 				return errors.New("INTERNAL_SERVER_ERROR")
 			}
 		case "counter":
@@ -46,7 +43,6 @@ func (ms *MetricService) SaveMetrics(ctx context.Context, metricList []metrics.M
 			}
 			err := ms.metricStorage.UpdateCounterValue(ctx, metric.ID, *metric.Delta)
 			if err != nil {
-				log.Println("im here 3", err.Error())
 				return errors.New("INTERNAL_SERVER_ERROR")
 			}
 		default:

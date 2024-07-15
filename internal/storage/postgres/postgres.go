@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"strings"
-	"log"
 )
 
 type PGStorage struct {
@@ -14,18 +13,26 @@ type PGStorage struct {
 func getDDL() string {
 	return `
 		CREATE SCHEMA IF NOT EXISTS content;
-		CREATE TABLE IF NOT EXISTS content.metrics (
-			name VARCHAR(255),
-			type VARCHAR(255) NOT NULL,
+		CREATE TABLE IF NOT EXISTS content.gauge_metrics (
+			name VARCHAR(255) PRIMARY KEY,
 			value DOUBLE PRECISION NOT NULL,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			PRIMARY KEY (name, type)
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
 
-		CREATE INDEX IF NOT EXISTS metrics_name_idx ON content.metrics(name);
-		CREATE INDEX IF NOT EXISTS metrics_type_idx ON content.metrics(type);
-		CREATE INDEX IF NOT EXISTS metrics_created_at_idx ON content.metrics(created_at);
+		CREATE INDEX IF NOT EXISTS gauge_metrics_created_at_idx ON content.gauge_metrics(created_at);
+		CREATE INDEX IF NOT EXISTS gauge_metrics_updated_at_idx ON content.gauge_metrics(updated_at);
+
+
+		CREATE TABLE IF NOT EXISTS content.counter_metrics (
+			name VARCHAR(255) PRIMARY KEY,
+			delta BIGINT NOT NULL,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);
+
+		CREATE INDEX IF NOT EXISTS counter_metrics_created_at_idx ON content.counter_metrics(created_at);
+		CREATE INDEX IF NOT EXISTS counter_metrics_updated_at_idx ON content.counter_metrics(updated_at);
 	`
 }
 
@@ -50,14 +57,16 @@ func NewPGStorage(ctx context.Context, DBDsn string) (*PGStorage, error) {
 }
 
 func (pg *PGStorage) UpdateGaugeValue(ctx context.Context, key string, value float64) error {
-	query := "UPDATE content.metrics SET value = $2 WHERE name = $1 AND type = 'gauge'"
-	log.Println(query, key, value)
+	query := `INSERT INTO content.gauge_metrics (value, name) 
+			  VALUES ($2, $1)
+			  ON CONFLICT (name) DO UPDATE
+			  SET value = $2, updated_at = CURRENT_TIMESTAMP;`
 	_, err := pg.db.ExecContext(ctx, query, key, value)
 	return err
 }
 
 func (pg *PGStorage) GetGaugeValue(ctx context.Context, key string) (float64, bool, error) {
-	query := "SELECT value FROM content.metrics WHERE name = $1 AND type = 'gauge'"
+	query := "SELECT value FROM content.gauge_metrics WHERE name = $1"
 	row := pg.db.QueryRowContext(ctx, query, key)
 	var value sql.NullFloat64
 	err := row.Scan(&value)
@@ -71,14 +80,16 @@ func (pg *PGStorage) GetGaugeValue(ctx context.Context, key string) (float64, bo
 }
 
 func (pg *PGStorage) UpdateCounterValue(ctx context.Context, key string, value int64) error {
-	query := "UPDATE content.metrics SET value = $2 WHERE name = $1 AND type = 'counter'"
-	log.Println(query, key, value)
+	query := `INSERT INTO content.counter_metrics (delta, name) 
+			  VALUES ($2, $1)
+			  ON CONFLICT (name) DO UPDATE
+			  SET delta = counter_metrics.delta + $2, updated_at = CURRENT_TIMESTAMP;`
 	_, err := pg.db.ExecContext(ctx, query, key, value)
 	return err
 }
 
 func (pg *PGStorage) GetCounterValue(ctx context.Context, key string) (int64, bool, error) {
-	query := "SELECT value FROM content.metrics WHERE name = $1 AND type = 'gauge'"
+	query := "SELECT delta FROM content.counter_metrics WHERE name = $1"
 	row := pg.db.QueryRowContext(ctx, query, key)
 	var value sql.NullInt64
 	err := row.Scan(&value)  // разбираем результат
@@ -92,7 +103,7 @@ func (pg *PGStorage) GetCounterValue(ctx context.Context, key string) (int64, bo
 }
 
 func (pg *PGStorage) GetGaugeValues(ctx context.Context) (map[string]float64, error) {
-	query := "SELECT value FROM content.metrics WHERE type = 'gauge'"
+	query := "SELECT value FROM content.gauge_metrics"
 	rows, err := pg.db.QueryContext(ctx, query)
 	if err != nil {
         return nil, err
@@ -119,7 +130,7 @@ func (pg *PGStorage) GetGaugeValues(ctx context.Context) (map[string]float64, er
 }
 
 func (pg *PGStorage) GetCounterValues(ctx context.Context) (map[string]int64, error) {
-	query := "SELECT value FROM content.metrics WHERE type = 'counter'"
+	query := "SELECT value FROM content.counter_metrics"
 	rows, err := pg.db.QueryContext(ctx, query)
 	if err != nil {
         return nil, err
