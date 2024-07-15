@@ -195,7 +195,7 @@ func (h *Handlers) GetJSONHandler(res http.ResponseWriter, req *http.Request) {
 
 	resp, err := json.Marshal(metric)
 	if err != nil {
-		resp, _ := json.Marshal(response.ResponseErrorObject{Detail: "Internal server error"})
+		resp, _ := json.Marshal(response.ResponseErrorObject{Detail: "Internal Server Error"})
 		res.Write(resp)
 		res.WriteHeader(http.StatusInternalServerError)
 		return
@@ -208,8 +208,6 @@ func (h *Handlers) Ping(res http.ResponseWriter, req *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
     defer cancel()
     if err := h.db.PingContext(ctx); err != nil {
-        resp, _ := json.Marshal(response.ResponseErrorObject{Detail: "Internal server error"})
-		res.Write(resp)
 		res.WriteHeader(http.StatusInternalServerError)
 		return
     }
