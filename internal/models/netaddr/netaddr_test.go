@@ -21,7 +21,7 @@ func TestNetAddrBase(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.testName, func(t *testing.T) {
-			resAddr := NetAddress{}
+			resAddr := NetAddress{Host: "localhost", Port: 8080}
 			err := resAddr.Set(tc.input)
 			if err != nil {
 				assert.Nil(t, tc.expectedAddr, "Invalid input was successfully parsed")
