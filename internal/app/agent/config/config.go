@@ -10,19 +10,19 @@ import (
 )
 
 type Config struct {
-	ReportIntervalSec int64				`env:"REPORT_INTERVAL,init"`
-	PollIntervalSec   int64				`env:"POLL_INTERVAL,init"`
-	Addr              *netaddr.NetAddress	`env:"ADDRESS,init"`
+	ReportIntervalSec int64				`env:"REPORT_INTERVAL"`
+	PollIntervalSec   int64				`env:"POLL_INTERVAL"`
+	Addr              netaddr.NetAddress	`env:"ADDRESS"`
 }
 
 func NewConfig() *Config {
 	addr := netaddr.NetAddress{Host: "localhost", Port: 8080}
-	return &Config{ReportIntervalSec: 10, PollIntervalSec: 2, Addr: &addr}
+	return &Config{ReportIntervalSec: 10, PollIntervalSec: 2, Addr: addr}
 }
 
 
 func ParseArgs(cfg *Config) {
-	flag.Var(cfg.Addr, "a", "Net address host:port")
+	flag.Var(&cfg.Addr, "a", "Net address host:port")
 	flag.Int64Var(&cfg.ReportIntervalSec, "r", 10, "Interval of sending metrics to the server")
 	flag.Int64Var(&cfg.PollIntervalSec, "p", 2, "Interval of polling metrics from runtime")
 	flag.Parse()

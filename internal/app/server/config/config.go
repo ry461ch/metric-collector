@@ -10,7 +10,7 @@ import (
 )
 
 type Config struct {
-	Addr	        *netaddr.NetAddress `env:"ADDRESS"`
+	Addr	        netaddr.NetAddress `env:"ADDRESS"`
 	LogLevel	    string 				`env:"LOG_LEVEL"`
 	StoreInterval   int64 				`env:"STORE_INTERVAL"`
 	FileStoragePath string 				`env:"FILE_STORAGE_PATH"`
@@ -24,13 +24,13 @@ func NewConfig() *Config {
 		StoreInterval: 300,
 		FileStoragePath: "/tmp/metrics-db.json",
 		Restore: true,
-		Addr: &addr,
+		Addr: addr,
 	}
 }
 
 
 func ParseArgs(cfg *Config) {
-	flag.Var(cfg.Addr, "a", "Net address host:port")
+	flag.Var(&cfg.Addr, "a", "Net address host:port")
 	flag.StringVar(&cfg.LogLevel, "l", "INFO", "Log level")
 	flag.Int64Var(&cfg.StoreInterval, "i", 300, "Store interval seconds")
 	flag.StringVar(&cfg.FileStoragePath, "f", "/tmp/metrics-db.json", "File storage path")

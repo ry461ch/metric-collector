@@ -98,7 +98,7 @@ func TestSendMetric(t *testing.T) {
 	agentStorage.UpdateCounterValue("test_5", 7)
 
 	metricService := metricservice.New(&agentStorage)
-	agent := New(&TimeState{}, &config.Config{Addr: splitURL(srv.URL)}, metricService)
+	agent := New(&TimeState{}, &config.Config{Addr: *splitURL(srv.URL)}, metricService)
 
 	agent.sendMetrics()
 	assert.Equal(t, int64(5), serverStorage.timesCalled, "Не прошел запрос на сервер")
@@ -113,7 +113,7 @@ func TestRun(t *testing.T) {
 	defer srv.Close()
 
 	agentStorage := memstorage.MemStorage{}
-	config := config.Config{ReportIntervalSec: 6, PollIntervalSec: 3, Addr: splitURL(srv.URL)}
+	config := config.Config{ReportIntervalSec: 6, PollIntervalSec: 3, Addr: *splitURL(srv.URL)}
 	timeState := TimeState{LastCollectMetricTime: time.Now(), LastSendMetricTime: time.Now()}
 
 	metricService := metricservice.New(&agentStorage)

@@ -42,6 +42,7 @@ func Run() {
 	handleService := handlers.New(cfg, metricService, fileWorker)
 	router := router.New(handleService)
 
+	logging.Logger.Info(cfg.Addr.String())
 	if cfg.StoreInterval != int64(0) {
 		var wg sync.WaitGroup
 		wg.Add(3)

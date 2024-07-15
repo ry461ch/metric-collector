@@ -140,6 +140,7 @@ func Run() {
 	cfg := config.NewConfig()
 	config.ParseArgs(cfg)
 	config.ParseEnv(cfg)
+	log.Println(cfg.Addr.String())
 
 	metricService := metricservice.New(&memstorage.MemStorage{})
 	mAgent := New(&TimeState{}, cfg, metricService)
