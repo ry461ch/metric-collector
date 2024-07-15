@@ -7,7 +7,6 @@ import (
 
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 	"github.com/ry461ch/metric-collector/internal/metricservice"
-	"github.com/ry461ch/metric-collector/internal/storage"
 )
 
 type FileWorker struct {
@@ -15,8 +14,8 @@ type FileWorker struct {
 	metricService *metricservice.MetricService
 }
 
-func New(filePath string, metricStorage storage.Storage) *FileWorker {
-	return &FileWorker{filePath: filePath, metricService: metricservice.New(metricStorage)}
+func New(filePath string, metricService *metricservice.MetricService) *FileWorker {
+	return &FileWorker{filePath: filePath, metricService: metricService}
 }
 
 // Here we write all the data into one variable, because we store

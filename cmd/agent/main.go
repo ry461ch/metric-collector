@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/ry461ch/metric-collector/internal/agent"
+	"github.com/ry461ch/metric-collector/internal/app/agent"
 )
 
 func main() {

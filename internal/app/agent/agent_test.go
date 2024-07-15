@@ -13,9 +13,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/ry461ch/metric-collector/internal/agent/config"
-	"github.com/ry461ch/metric-collector/internal/config/netaddr"
+	"github.com/ry461ch/metric-collector/internal/app/agent/config"
+	"github.com/ry461ch/metric-collector/internal/models/netaddr"
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
+	"github.com/ry461ch/metric-collector/internal/metricservice"
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
 )
 
@@ -54,16 +55,17 @@ func (m *MockServerStorage) mockRouter() chi.Router {
 	return router
 }
 
-func splitURL(URL string) netaddr.NetAddress {
+func splitURL(URL string) *netaddr.NetAddress {
 	updatedURL, _ := strings.CutPrefix(URL, "http://")
 	parts := strings.Split(updatedURL, ":")
 	port, _ := strconv.ParseInt(parts[1], 10, 0)
-	return netaddr.NetAddress{Host: parts[0], Port: port}
+	return &netaddr.NetAddress{Host: parts[0], Port: port}
 }
 
 func TestCollectMetric(t *testing.T) {
 	metricStorage := memstorage.MemStorage{}
-	agent := New(&TimeState{}, config.Options{}, &metricStorage)
+	metricService := metricservice.New(&metricStorage)
+	agent := New(&TimeState{}, &config.Config{}, metricService)
 	agent.collectMetric()
 
 	storedGaugeValues := metricStorage.GetGaugeValues()
@@ -95,7 +97,8 @@ func TestSendMetric(t *testing.T) {
 	agentStorage.UpdateCounterValue("test_4", 10)
 	agentStorage.UpdateCounterValue("test_5", 7)
 
-	agent := New(&TimeState{}, config.Options{Addr: splitURL(srv.URL)}, &agentStorage)
+	metricService := metricservice.New(&agentStorage)
+	agent := New(&TimeState{}, &config.Config{Addr: splitURL(srv.URL)}, metricService)
 
 	agent.sendMetrics()
 	assert.Equal(t, int64(5), serverStorage.timesCalled, "Не прошел запрос на сервер")
@@ -110,9 +113,11 @@ func TestRun(t *testing.T) {
 	defer srv.Close()
 
 	agentStorage := memstorage.MemStorage{}
-	options := config.Options{ReportIntervalSec: 6, PollIntervalSec: 3, Addr: splitURL(srv.URL)}
+	config := config.Config{ReportIntervalSec: 6, PollIntervalSec: 3, Addr: splitURL(srv.URL)}
 	timeState := TimeState{LastCollectMetricTime: time.Now(), LastSendMetricTime: time.Now()}
-	agent := New(&timeState, options, &agentStorage)
+
+	metricService := metricservice.New(&agentStorage)
+	agent := New(&timeState, &config, metricService)
 
 	agent.runIteration()
 	pollCount, _ := agentStorage.GetCounterValue("PollCount")

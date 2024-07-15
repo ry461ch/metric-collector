@@ -1,7 +1,7 @@
 package response
 
-type EmptyObject struct{}
+type ResponseEmptyObject struct{}
 
-type ErrorObject struct {
+type ResponseErrorObject struct {
 	Detail string `json:"detail,omitempty"`
 }
