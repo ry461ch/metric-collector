@@ -2,6 +2,7 @@ package metricservice
 
 import (
 	"testing"
+	"context"
 
 	"github.com/stretchr/testify/assert"
 
@@ -10,18 +11,18 @@ import (
 
 func TestBase(t *testing.T) {
 	mReadStorage := memstorage.MemStorage{}
-	mReadStorage.UpdateCounterValue("test_1", 6)
-	mReadStorage.UpdateGaugeValue("test_2", 5.5)
+	mReadStorage.UpdateCounterValue(context.TODO(), "test_1", 6)
+	mReadStorage.UpdateGaugeValue(context.TODO(), "test_2", 5.5)
 	mReadService := MetricService{metricStorage: &mReadStorage}
 
-	metricList := mReadService.ExtractMetrics()
+	metricList, _ := mReadService.ExtractMetrics(context.TODO())
 
 	mWriteStorage := memstorage.MemStorage{}
 	mWriteService := MetricService{metricStorage: &mWriteStorage}
-	mWriteService.SaveMetrics(metricList)
+	mWriteService.SaveMetrics(context.Background(), metricList)
 
-	counterVal, _ := mWriteStorage.GetCounterValue("test_1")
+	counterVal, _, _ := mWriteStorage.GetCounterValue(context.TODO(), "test_1")
 	assert.Equal(t, int64(6), counterVal, "counter not equal")
-	gaugeVal, _ := mWriteStorage.GetGaugeValue("test_2")
+	gaugeVal, _, _ := mWriteStorage.GetGaugeValue(context.TODO(), "test_2")
 	assert.Equal(t, float64(5.5), gaugeVal, "gauge not equal")
 }

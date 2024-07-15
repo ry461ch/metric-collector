@@ -2,6 +2,7 @@ package snapshotmaker
 
 import (
 	"time"
+	"context"
 
 	"github.com/ry461ch/metric-collector/internal/app/server/config"
 	"github.com/ry461ch/metric-collector/pkg/logging"
@@ -30,19 +31,21 @@ func New(timeState *TimeState, config *config.Config, fileWorker *fileworker.Fil
 	}
 }
 
-func (sm *SnapshotMaker) runIteration() {
+func (sm *SnapshotMaker) runIteration(ctx context.Context) {
+	iterCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
 	defaultTime := time.Time{}
 	if sm.timeState.LastSnapshotTime == defaultTime ||
 		time.Duration(time.Duration(sm.config.StoreInterval)*time.Second) <= time.Since(sm.timeState.LastSnapshotTime) {
-			sm.fileWorker.ImportToFile()
+			sm.fileWorker.ImportToFile(iterCtx)
 			sm.timeState.LastSnapshotTime = time.Now()
 		logging.Logger.Info("Successfully saved all metrics")
 	}
 }
 
-func (sm *SnapshotMaker) Run() {
+func (sm *SnapshotMaker) Run(ctx context.Context) {
 	for !sm.isBreak {
-		sm.runIteration()
+		sm.runIteration(ctx)
 		time.Sleep(time.Second)
 	}
 }

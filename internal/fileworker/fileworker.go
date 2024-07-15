@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"context"
 
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 	"github.com/ry461ch/metric-collector/internal/metricservice"
@@ -21,7 +22,7 @@ func New(filePath string, metricService *metricservice.MetricService) *FileWorke
 // Here we write all the data into one variable, because we store
 // all data in memory, so we can assume that we have
 // enough memory to duplicate our metric data
-func (fw *FileWorker) ExportFromFile() error {
+func (fw *FileWorker) ExportFromFile(ctx context.Context) error {
 	metricList := []metrics.Metrics{}
 
 	file, err := os.OpenFile(fw.filePath, os.O_RDONLY|os.O_CREATE, 0666)
@@ -46,12 +47,18 @@ func (fw *FileWorker) ExportFromFile() error {
 		return err
 	}
 
-	fw.metricService.SaveMetrics(metricList)
+	err = fw.metricService.SaveMetrics(ctx, metricList)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
-func (fw *FileWorker) ImportToFile() error {
-	metricList := fw.metricService.ExtractMetrics()
+func (fw *FileWorker) ImportToFile(ctx context.Context) error {
+	metricList, err := fw.metricService.ExtractMetrics(ctx)
+	if err != nil {
+		return err
+	}
 
 	file, err := os.OpenFile(fw.filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {

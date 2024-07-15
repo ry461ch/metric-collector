@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"context"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -34,7 +35,7 @@ func TestPostTextGaugeHandler(t *testing.T) {
 
 	metricService := metricservice.New(&memStorage)
 	fileWorker := fileworker.New("", metricService)
-	handlers := New(&config.Config{StoreInterval: 1}, metricService, fileWorker, nil)
+	handlers := New(&config.Config{StoreInterval: 1}, metricService, fileWorker)
 
 	router := mockRouter(handlers)
 	srv := httptest.NewServer(router)
@@ -47,7 +48,7 @@ func TestPostTextGaugeHandler(t *testing.T) {
 	_, err = client.R().Post(srv.URL + "/update/gauge/some_metric/12.0")
 	assert.Nil(t, err, "Сервер вернул 500")
 
-	val, _ := memStorage.GetGaugeValue("some_metric")
+	val, _, _ := memStorage.GetGaugeValue(context.TODO(), "some_metric")
 	assert.Equal(t, float64(12.0), val, "Сохраненное значение метрики типа gauge не совпадает с ожидаемым")
 }
 
@@ -56,7 +57,7 @@ func TestPostTextCounterHandler(t *testing.T) {
 
 	metricService := metricservice.New(&memStorage)
 	fileWorker := fileworker.New("", metricService)
-	handlers := New(&config.Config{StoreInterval: 1}, metricService, fileWorker, nil)
+	handlers := New(&config.Config{StoreInterval: 1}, metricService, fileWorker)
 
 	router := mockRouter(handlers)
 	srv := httptest.NewServer(router)
@@ -69,17 +70,17 @@ func TestPostTextCounterHandler(t *testing.T) {
 	_, err = client.R().Post(srv.URL + "/update/counter/some_metric/12")
 	assert.Nil(t, err, "Сервер вернул 500")
 
-	val, _ := memStorage.GetCounterValue("some_metric")
+	val, _, _ := memStorage.GetCounterValue(context.TODO(), "some_metric")
 	assert.Equal(t, int64(22), val, "Сохраненное значение метрики типа counter не совпадает с ожидаемым")
 }
 
 func TestGetTextGaugeHandler(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
-	memStorage.UpdateGaugeValue("some_metric", 10.5)
+	memStorage.UpdateGaugeValue(context.TODO(), "some_metric", 10.5)
 
 	metricService := metricservice.New(&memStorage)
 	fileWorker := fileworker.New("", metricService)
-	handlers := New(&config.Config{StoreInterval: 1}, metricService, fileWorker, nil)
+	handlers := New(&config.Config{StoreInterval: 1}, metricService, fileWorker)
 
 	router := mockRouter(handlers)
 	srv := httptest.NewServer(router)
@@ -99,11 +100,11 @@ func TestGetTextGaugeHandler(t *testing.T) {
 
 func TestGetTextCounterHandler(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
-	memStorage.UpdateCounterValue("some_metric", 10)
+	memStorage.UpdateCounterValue(context.TODO(), "some_metric", 10)
 
 	metricService := metricservice.New(&memStorage)
 	fileWorker := fileworker.New("", metricService)
-	handlers := New(&config.Config{StoreInterval: 1}, metricService, fileWorker, nil)
+	handlers := New(&config.Config{StoreInterval: 1}, metricService, fileWorker)
 
 	router := mockRouter(handlers)
 	srv := httptest.NewServer(router)
@@ -123,16 +124,16 @@ func TestGetTextCounterHandler(t *testing.T) {
 
 func TestGetAllMetricsHandler(t *testing.T) {
 	memStorage := memstorage.MemStorage{}
-	memStorage.UpdateCounterValue("counter_1", 1)
-	memStorage.UpdateCounterValue("counter_2", 2)
-	memStorage.UpdateGaugeValue("gauge_1", 1)
-	memStorage.UpdateGaugeValue("gauge_2", 2)
+	memStorage.UpdateCounterValue(context.TODO(), "counter_1", 1)
+	memStorage.UpdateCounterValue(context.TODO(), "counter_2", 2)
+	memStorage.UpdateGaugeValue(context.TODO(), "gauge_1", 1)
+	memStorage.UpdateGaugeValue(context.TODO(), "gauge_2", 2)
 
 	expectedBody := "counter_1 : 1\ncounter_2 : 2\ngauge_1 : 1\ngauge_2 : 2\n"
 
 	metricService := metricservice.New(&memStorage)
 	fileWorker := fileworker.New("", metricService)
-	handlers := New(&config.Config{StoreInterval: 1}, metricService, fileWorker, nil)
+	handlers := New(&config.Config{StoreInterval: 1}, metricService, fileWorker)
 
 	router := mockRouter(handlers)
 	srv := httptest.NewServer(router)
@@ -154,7 +155,7 @@ func TestPostJSONHandler(t *testing.T) {
 
 	metricService := metricservice.New(&memStorage)
 	fileWorker := fileworker.New("", metricService)
-	handlers := New(&config.Config{StoreInterval: 1}, metricService, fileWorker, nil)
+	handlers := New(&config.Config{StoreInterval: 1}, metricService, fileWorker)
 
 	router := mockRouter(handlers)
 	srv := httptest.NewServer(router)
@@ -274,7 +275,7 @@ func TestJsonGaugeStorageHandler(t *testing.T) {
 
 	metricService := metricservice.New(&memStorage)
 	fileWorker := fileworker.New("", metricService)
-	handlers := New(&config.Config{StoreInterval: 1}, metricService, fileWorker, nil)
+	handlers := New(&config.Config{StoreInterval: 1}, metricService, fileWorker)
 
 	router := mockRouter(handlers)
 	srv := httptest.NewServer(router)

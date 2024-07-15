@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strconv"
 	"time"
+	"context"
 
 	"gopkg.in/resty.v1"
 
@@ -39,7 +40,7 @@ func New(timeState *TimeState, config *config.Config, metricService *metricservi
 	}
 }
 
-func (a *Agent) collectMetric() {
+func (a *Agent) collectMetric(ctx context.Context) {
 	log.Println("Trying to collect metrics")
 	var rtm runtime.MemStats
 	runtime.ReadMemStats(&rtm)
@@ -92,17 +93,17 @@ func (a *Agent) collectMetric() {
 			Delta: &val,
 		})
 	}
-	a.metricService.SaveMetrics(metricList)
+	a.metricService.SaveMetrics(ctx, metricList)
 	log.Println("Successfully got all metrics")
 }
 
-func (a *Agent) sendMetrics() error {
+func (a *Agent) sendMetrics(ctx context.Context) error {
 	log.Println("Trying to send metrics")
 	serverURL := "http://" + a.config.Addr.Host + ":" + strconv.FormatInt(a.config.Addr.Port, 10)
 
 	client := resty.New()
 
-	metricList := a.metricService.ExtractMetrics()
+	metricList, _ := a.metricService.ExtractMetrics(ctx)
 
 	for _, metric := range metricList {
 		req, _ := json.Marshal(metric)
@@ -121,17 +122,19 @@ func (a *Agent) sendMetrics() error {
 	return nil
 }
 
-func (a *Agent) runIteration() {
+func (a *Agent) runIteration(ctx context.Context) {
+	iterCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
 	defaultTime := time.Time{}
 	if a.timeState.LastCollectMetricTime == defaultTime ||
 		time.Duration(time.Duration(a.config.PollIntervalSec)*time.Second) <= time.Since(a.timeState.LastCollectMetricTime) {
-		a.collectMetric()
+		a.collectMetric(iterCtx)
 		a.timeState.LastCollectMetricTime = time.Now()
 	}
 
 	if a.timeState.LastSendMetricTime == defaultTime ||
 		time.Duration(time.Duration(a.config.ReportIntervalSec)*time.Second) <= time.Since(a.timeState.LastSendMetricTime) {
-		a.sendMetrics()
+		a.sendMetrics(iterCtx)
 		a.timeState.LastSendMetricTime = time.Now()
 	}
 }
@@ -141,11 +144,12 @@ func Run() {
 	config.ParseArgs(cfg)
 	config.ParseEnv(cfg)
 	log.Println(cfg.Addr.String())
+	ctx := context.Background()
 
 	metricService := metricservice.New(&memstorage.MemStorage{})
 	mAgent := New(&TimeState{}, cfg, metricService)
 	for {
-		mAgent.runIteration()
+		mAgent.runIteration(ctx)
 		time.Sleep(time.Second)
 	}
 }

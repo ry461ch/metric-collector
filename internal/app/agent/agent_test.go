@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"context"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -66,20 +67,20 @@ func TestCollectMetric(t *testing.T) {
 	metricStorage := memstorage.MemStorage{}
 	metricService := metricservice.New(&metricStorage)
 	agent := New(&TimeState{}, &config.Config{}, metricService)
-	agent.collectMetric()
+	agent.collectMetric(context.TODO())
 
-	storedGaugeValues := metricStorage.GetGaugeValues()
+	storedGaugeValues, _ := metricStorage.GetGaugeValues(context.TODO())
 
 	assert.Equal(t, 28, len(storedGaugeValues), "Несовпадает количество отслеживаемых метрик")
 	assert.Contains(t, storedGaugeValues, "NextGC")
 	assert.Contains(t, storedGaugeValues, "HeapIdle")
 	assert.Contains(t, storedGaugeValues, "RandomValue")
-	val, _ := metricStorage.GetCounterValue("PollCount")
+	val, _, _ := metricStorage.GetCounterValue(context.TODO(), "PollCount")
 	assert.Equal(t, int64(1), val)
 
-	agent.collectMetric()
+	agent.collectMetric(context.TODO())
 
-	val, _ = metricStorage.GetCounterValue("PollCount")
+	val, _, _ = metricStorage.GetCounterValue(context.TODO(), "PollCount")
 	assert.Equal(t, int64(2), val)
 }
 
@@ -91,16 +92,16 @@ func TestSendMetric(t *testing.T) {
 
 	agentStorage := memstorage.MemStorage{}
 
-	agentStorage.UpdateGaugeValue("test_1", 10.0)
-	agentStorage.UpdateGaugeValue("test_2", 10.0)
-	agentStorage.UpdateGaugeValue("test_3", 10.0)
-	agentStorage.UpdateCounterValue("test_4", 10)
-	agentStorage.UpdateCounterValue("test_5", 7)
+	agentStorage.UpdateGaugeValue(context.TODO(), "test_1", 10.0)
+	agentStorage.UpdateGaugeValue(context.TODO(), "test_2", 10.0)
+	agentStorage.UpdateGaugeValue(context.TODO(), "test_3", 10.0)
+	agentStorage.UpdateCounterValue(context.TODO(), "test_4", 10)
+	agentStorage.UpdateCounterValue(context.TODO(), "test_5", 7)
 
 	metricService := metricservice.New(&agentStorage)
 	agent := New(&TimeState{}, &config.Config{Addr: *splitURL(srv.URL)}, metricService)
 
-	agent.sendMetrics()
+	agent.sendMetrics(context.TODO())
 	assert.Equal(t, int64(5), serverStorage.timesCalled, "Не прошел запрос на сервер")
 	assert.Equal(t, float64(10.0), serverStorage.metricsGauge["test_2"], "Неправильно записалась метрика в хранилище")
 	assert.Equal(t, int64(10), serverStorage.metricsCounter["test_4"], "Неправильно записалась метрика в хранилище")
@@ -119,18 +120,18 @@ func TestRun(t *testing.T) {
 	metricService := metricservice.New(&agentStorage)
 	agent := New(&timeState, &config, metricService)
 
-	agent.runIteration()
-	pollCount, _ := agentStorage.GetCounterValue("PollCount")
+	agent.runIteration(context.TODO())
+	pollCount, _, _ := agentStorage.GetCounterValue(context.TODO(), "PollCount")
 	assert.Equal(t, int64(0), pollCount, "Вызвался collect metric, хотя еще не должен был")
 
 	timeState.LastCollectMetricTime = time.Now().Add(-time.Second * 4)
-	agent.runIteration()
-	pollCount, _ = agentStorage.GetCounterValue("PollCount")
+	agent.runIteration(context.TODO())
+	pollCount, _, _ = agentStorage.GetCounterValue(context.TODO(), "PollCount")
 	assert.Equal(t, int64(1), pollCount, "Кол-во вызовов collectMetric не совпадает с ожидаемым")
 
 	timeState.LastSendMetricTime = time.Now().Add(-time.Second * 7)
-	agent.runIteration()
+	agent.runIteration(context.TODO())
 	assert.Less(t, int64(0), serverStorage.timesCalled, "Не прошел запрос на сервер")
-	pollCount, _ = agentStorage.GetCounterValue("PollCount")
+	pollCount, _, _ = agentStorage.GetCounterValue(context.TODO(), "PollCount")
 	assert.Equal(t, int64(1), pollCount, "Кол-во вызовов collectMetric не совпадает с ожидаемым")
 }

@@ -1,11 +1,15 @@
 package storage
 
-type Storage interface {
-	UpdateGaugeValue(key string, value float64)
-	GetGaugeValue(key string) (float64, bool)
-	UpdateCounterValue(key string, value int64)
-	GetCounterValue(key string) (int64, bool)
+import "context"
 
-	GetGaugeValues() map[string]float64
-	GetCounterValues() map[string]int64
+type Storage interface {
+	UpdateGaugeValue(ctx context.Context, key string, value float64) error
+	GetGaugeValue(ctx context.Context, key string) (float64, bool, error)
+	UpdateCounterValue(ctx context.Context, key string, value int64) error
+	GetCounterValue(ctx context.Context, key string) (int64, bool, error)
+
+	GetGaugeValues(ctx context.Context) (map[string]float64, error)
+	GetCounterValues(ctx context.Context) (map[string]int64, error)
+	Ping(ctx context.Context) bool
+	Close()
 }

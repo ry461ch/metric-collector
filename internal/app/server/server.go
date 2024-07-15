@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"strconv"
 	"sync"
-	"database/sql"
+	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
@@ -17,7 +17,9 @@ import (
 	"github.com/ry461ch/metric-collector/internal/app/server/router"
 	"github.com/ry461ch/metric-collector/internal/fileworker"
 	"github.com/ry461ch/metric-collector/internal/metricservice"
+	"github.com/ry461ch/metric-collector/internal/storage"
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
+	"github.com/ry461ch/metric-collector/internal/storage/postgres"
 	"github.com/ry461ch/metric-collector/pkg/logging"
 )
 
@@ -30,23 +32,25 @@ func Run() {
 	// set logger
 	logging.Initialize(cfg.LogLevel)
 
-	// Init db
-	db, _ := sql.Open("pgx", cfg.DBDsn)
-	defer db.Close()
-
 	// initialize storage
-	metricStorage := memstorage.MemStorage{}
-	metricService := metricservice.New(&metricStorage)
+	var metricStorage storage.Storage
+	if cfg.DBDsn != "" {
+		metricStorage, _ = pgstorage.NewPGStorage(context.Background(), cfg.DBDsn)
+	} else {
+		metricStorage = memstorage.NewMemStorage()
+	}
+	defer metricStorage.Close()
+	metricService := metricservice.New(metricStorage)
 	fileWorker := fileworker.New(cfg.FileStoragePath, metricService)
 	if cfg.Restore {
-		err := fileWorker.ExportFromFile()
+		err := fileWorker.ExportFromFile(context.Background())
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	// prepare for serving
-	handleService := handlers.New(cfg, metricService, fileWorker, db)
+	handleService := handlers.New(cfg, metricService, fileWorker)
 	router := router.New(handleService)
 
 	logging.Logger.Info(cfg.Addr.String())
@@ -64,7 +68,7 @@ func Run() {
 		// run crontasks
 		snapshotMaker := snapshotmaker.New(&snapshotmaker.TimeState{}, cfg, fileWorker)
 		go func() {
-			snapshotMaker.Run()
+			snapshotMaker.Run(context.Background())
 			wg.Done()
 		}()
 
@@ -73,7 +77,9 @@ func Run() {
 			stop := make(chan os.Signal, 1)
 			signal.Notify(stop, os.Interrupt)
 			<-stop
-			fileWorker.ImportToFile()
+			fileCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+			defer cancel()
+			fileWorker.ImportToFile(fileCtx)
 			server.Shutdown(context.Background())
 			snapshotMaker.Break()
 			wg.Done()

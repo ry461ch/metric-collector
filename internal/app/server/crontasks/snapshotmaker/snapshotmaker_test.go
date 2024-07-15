@@ -3,6 +3,7 @@ package snapshotmaker
 import (
 	"testing"
 	"time"
+	"context"
 
 	"github.com/stretchr/testify/assert"
 
@@ -17,8 +18,8 @@ func TestBase(t *testing.T) {
 	logging.Initialize("DEBUG")
 	mReadStorage := memstorage.MemStorage{}
 	mReadService := metricservice.New(&mReadStorage)
-	mReadStorage.UpdateCounterValue("test_1", 6)
-	mReadStorage.UpdateGaugeValue("test_2", 5.5)
+	mReadStorage.UpdateCounterValue(context.TODO(), "test_1", 6)
+	mReadStorage.UpdateGaugeValue(context.TODO(), "test_2", 5.5)
 
 	currentTime := time.Now()
 	filepath := "/tmp/metrics-db.json"
@@ -27,20 +28,20 @@ func TestBase(t *testing.T) {
 	fileWorker := fileworker.New(filepath, mReadService)
 	snapshotMaker := New(&timeState, &config, fileWorker)
 
-	snapshotMaker.runIteration()
+	snapshotMaker.runIteration(context.TODO())
 	assert.Equal(t, currentTime, snapshotMaker.timeState.LastSnapshotTime, "Сработал if, хотя еще не время")
 
 	timeState.LastSnapshotTime = time.Now().Add(-time.Second * 6)
-	snapshotMaker.runIteration()
+	snapshotMaker.runIteration(context.TODO())
 	assert.NotEqual(t, currentTime, snapshotMaker.timeState.LastSnapshotTime, "Не сработал if, хотя должен был")
 
 	mWriteStorage := memstorage.MemStorage{}
 	mWriteService := metricservice.New(&mWriteStorage)
 	fileWriteWorker := fileworker.New(filepath, mWriteService)
-	fileWriteWorker.ExportFromFile()
+	fileWriteWorker.ExportFromFile(context.TODO())
 
-	counterVal, _ := mWriteStorage.GetCounterValue("test_1")
+	counterVal, _, _ := mWriteStorage.GetCounterValue(context.TODO(), "test_1")
 	assert.Equal(t, int64(6), counterVal, "Несовпадают значения counter")
-	gaugeVal, _ := mWriteStorage.GetGaugeValue("test_2")
+	gaugeVal, _, _ := mWriteStorage.GetGaugeValue(context.TODO(), "test_2")
 	assert.Equal(t, float64(5.5), gaugeVal, "Несовпадают значения gauge")
 }
