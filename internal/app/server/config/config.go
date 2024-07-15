@@ -10,7 +10,7 @@ import (
 )
 
 type Config struct {
-	Db_dsn			string				`env:"DATABASE_DSN"`
+	DBDsn			string				`env:"DATABASE_DSN"`
 	Addr	        netaddr.NetAddress  `env:"ADDRESS"`
 	LogLevel	    string 				`env:"LOG_LEVEL"`
 	StoreInterval   int64 				`env:"STORE_INTERVAL"`
@@ -33,7 +33,7 @@ func NewConfig() *Config {
 func ParseArgs(cfg *Config) {
 	flag.Var(&cfg.Addr, "a", "Net address host:port")
 	flag.StringVar(&cfg.LogLevel, "l", "INFO", "Log level")
-	flag.StringVar(&cfg.Db_dsn, "d", "", "database connection string")
+	flag.StringVar(&cfg.DBDsn, "d", "", "database connection string")
 	flag.Int64Var(&cfg.StoreInterval, "i", 300, "Store interval seconds")
 	flag.StringVar(&cfg.FileStoragePath, "f", "/tmp/metrics-db.json", "File storage path")
 	flag.BoolVar(&cfg.Restore, "r", true, "Load data from fileStoragePath when server is starting")

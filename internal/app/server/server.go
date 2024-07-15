@@ -31,7 +31,7 @@ func Run() {
 	logging.Initialize(cfg.LogLevel)
 
 	// Init db
-	db, _ := sql.Open("pgx", cfg.Db_dsn)
+	db, _ := sql.Open("pgx", cfg.DBDsn)
 	defer db.Close()
 
 	// initialize storage
