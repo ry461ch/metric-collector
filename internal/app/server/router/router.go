@@ -72,6 +72,7 @@ func New(mHandlers metricHandlers) chi.Router {
 			res.WriteHeader(http.StatusNotFound)
 		})
 	})
+	router.Get("/ping", mHandlers.Ping)
 	router.Route("/", func(r chi.Router) {
 		r.Use(contenttypes.ValidatePlainContentType)
 		router.Get("/", mHandlers.GetPlainAllMetricsHandler)
