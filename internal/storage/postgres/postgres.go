@@ -4,6 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+	"errors"
+
+	"github.com/ry461ch/metric-collector/internal/models/metrics"
 )
 
 type PGStorage struct {
@@ -56,106 +59,6 @@ func NewPGStorage(ctx context.Context, DBDsn string) (*PGStorage, error) {
 	return &PGStorage{db: db}, nil
 }
 
-func (pg *PGStorage) UpdateGaugeValue(ctx context.Context, key string, value float64) error {
-	query := `INSERT INTO content.gauge_metrics (value, name) 
-			  VALUES ($2, $1)
-			  ON CONFLICT (name) DO UPDATE
-			  SET value = $2, updated_at = CURRENT_TIMESTAMP;`
-	_, err := pg.db.ExecContext(ctx, query, key, value)
-	return err
-}
-
-func (pg *PGStorage) GetGaugeValue(ctx context.Context, key string) (float64, bool, error) {
-	query := "SELECT value FROM content.gauge_metrics WHERE name = $1"
-	row := pg.db.QueryRowContext(ctx, query, key)
-	var value sql.NullFloat64
-	err := row.Scan(&value)
-    if err != nil {
-        return 0, false, err
-    }
-	if !value.Valid {
-		return 0, false, nil
-	}
-	return value.Float64, true, nil
-}
-
-func (pg *PGStorage) UpdateCounterValue(ctx context.Context, key string, value int64) error {
-	query := `INSERT INTO content.counter_metrics (delta, name) 
-			  VALUES ($2, $1)
-			  ON CONFLICT (name) DO UPDATE
-			  SET delta = counter_metrics.delta + $2, updated_at = CURRENT_TIMESTAMP;`
-	_, err := pg.db.ExecContext(ctx, query, key, value)
-	return err
-}
-
-func (pg *PGStorage) GetCounterValue(ctx context.Context, key string) (int64, bool, error) {
-	query := "SELECT delta FROM content.counter_metrics WHERE name = $1"
-	row := pg.db.QueryRowContext(ctx, query, key)
-	var value sql.NullInt64
-	err := row.Scan(&value)  // разбираем результат
-    if err != nil {
-        return 0, false, err
-    }
-	if !value.Valid {
-		return 0, false, nil
-	}
-	return value.Int64, true, nil
-}
-
-func (pg *PGStorage) GetGaugeValues(ctx context.Context) (map[string]float64, error) {
-	query := "SELECT value FROM content.gauge_metrics"
-	rows, err := pg.db.QueryContext(ctx, query)
-	if err != nil {
-        return nil, err
-    }
-	defer rows.Close()
-
-	data := map[string]float64{}
-	for rows.Next() {
-        var key string
-		var val float64
-        err = rows.Scan(key, val)
-        if err != nil {
-            return nil, err
-        }
-
-        data[key] = val
-    }
-
-    err = rows.Err()
-    if err != nil {
-        return nil, err
-    }
-    return data, nil
-}
-
-func (pg *PGStorage) GetCounterValues(ctx context.Context) (map[string]int64, error) {
-	query := "SELECT value FROM content.counter_metrics"
-	rows, err := pg.db.QueryContext(ctx, query)
-	if err != nil {
-        return nil, err
-    }
-	defer rows.Close()
-
-	data := map[string]int64{}
-	for rows.Next() {
-        var key string
-		var val int64
-        err = rows.Scan(key, val)
-        if err != nil {
-            return nil, err
-        }
-
-        data[key] = val
-    }
-
-    err = rows.Err()
-    if err != nil {
-        return nil, err
-    }
-    return data, nil
-}
-
 func (pg *PGStorage) Close() {
 	defer pg.db.Close()
 }
@@ -165,4 +68,175 @@ func (pg *PGStorage) Ping(ctx context.Context) bool {
 		return false
     }
 	return true
+}
+
+
+func (pg *PGStorage) SaveMetrics(ctx context.Context, metricList []metrics.Metric) error {
+	gaugeMetrics := map[string]float64{}
+	counterMetrics := map[string]int64{}
+
+	// prepare arrays
+	for _, metric := range metricList {
+		if metric.ID == "" {
+			return errors.New("INVALID_METRIC")
+		}
+		if metric.MType == "" {
+			return errors.New("INVALID_METRIC")
+		}
+
+		switch metric.MType {
+		case "gauge":
+			if metric.Value == nil {
+				return errors.New("INVALID_METRIC")
+			}
+			gaugeMetrics[metric.ID] = *metric.Value
+		case "counter":
+			if metric.Delta == nil {
+				return errors.New("INVALID_METRIC")
+			}
+			counterMetrics[metric.ID] = *metric.Delta
+		default:
+			return errors.New("INVALID_METRIC")
+		}
+	}
+
+	// begin trx
+	tx, err := pg.db.Begin()
+    if err != nil {
+        return err
+    }
+
+	// insert gauge values
+	gaugeQuery := `INSERT INTO content.gauge_metrics (name, value) 
+			  VALUES ($1, $2)
+			  ON CONFLICT (name) DO UPDATE
+			  SET value = $2, updated_at = CURRENT_TIMESTAMP;`
+	stmt, err := tx.PrepareContext(ctx, gaugeQuery)
+	if err != nil {
+        return err
+    }
+	for key, val := range gaugeMetrics {
+		_, err := stmt.ExecContext(ctx, key, val)
+		if err != nil {
+			return err
+		}
+	}
+
+	// insert counter values
+	counterQuery := `INSERT INTO content.counter_metrics (name, delta) 
+			  VALUES ($1, $2)
+			  ON CONFLICT (name) DO UPDATE
+			  SET delta = counter_metrics.delta + $2, updated_at = CURRENT_TIMESTAMP;`
+	stmt, err = tx.PrepareContext(ctx, counterQuery)
+	if err != nil {
+		return err
+	}
+	for key, val := range counterMetrics {
+		_, err := stmt.ExecContext(ctx, key, val)
+		if err != nil {
+			return err
+		}
+	}
+
+	// commit trx
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (pg *PGStorage) ExtractMetrics(ctx context.Context) ([]metrics.Metric, error) {
+	metricList := []metrics.Metric{}
+	
+	// get gauge metrics
+	getGaugeQuery := "SELECT name, value FROM content.gauge_metrics"
+	rows, err := pg.db.QueryContext(ctx, getGaugeQuery)
+	if err != nil {
+        return nil, err
+    }
+	defer rows.Close()
+
+	for rows.Next() {
+        var key string
+		var val float64
+        err = rows.Scan(key, val)
+        if err != nil {
+            return nil, err
+        }
+
+        metricList = append(metricList, metrics.Metric{
+			ID:    key,
+			MType: "gauge",
+			Value: &val,
+		})
+    }
+
+    err = rows.Err()
+    if err != nil {
+        return nil, err
+    }
+
+	// get counter metrics
+	getCounterQuery := "SELECT value FROM content.counter_metrics"
+	rows, err = pg.db.QueryContext(ctx, getCounterQuery)
+	if err != nil {
+        return nil, err
+    }
+	defer rows.Close()
+
+	for rows.Next() {
+        var key string
+		var val int64
+        err = rows.Scan(key, val)
+        if err != nil {
+            return nil, err
+        }
+
+        metricList = append(metricList, metrics.Metric{
+			ID:    key,
+			MType: "counter",
+			Delta: &val,
+		})
+    }
+
+    err = rows.Err()
+    if err != nil {
+        return nil, err
+    }
+
+	return metricList, nil
+}
+
+func (pg *PGStorage) GetMetric(ctx context.Context, metric *metrics.Metric) error {
+	switch (metric.MType) {
+	case "gauge":
+		query := "SELECT value FROM content.gauge_metrics WHERE name = $1"
+		row := pg.db.QueryRowContext(ctx, query, metric.ID)
+		var value sql.NullFloat64
+		err := row.Scan(&value)
+		if err != nil {
+			return err
+		}
+		if !value.Valid {
+			return errors.New("NOT_FOUND")
+		}
+		metric.Value = &value.Float64
+	case "counter":
+		query := "SELECT delta FROM content.counter_metrics WHERE name = $1;"
+		row := pg.db.QueryRowContext(ctx, query, metric.ID)
+		var value sql.NullInt64
+		err := row.Scan(&value)
+		if err != nil {
+			return err
+		}
+		if !value.Valid {
+			return errors.New("NOT_FOUND")
+		}
+		metric.Delta = &value.Int64
+	default:
+		return errors.New("INVALID_METRIC_TYPE")
+	}
+	return nil
 }

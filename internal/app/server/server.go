@@ -16,7 +16,6 @@ import (
 	"github.com/ry461ch/metric-collector/internal/app/server/handlers"
 	"github.com/ry461ch/metric-collector/internal/app/server/router"
 	"github.com/ry461ch/metric-collector/internal/fileworker"
-	"github.com/ry461ch/metric-collector/internal/metricservice"
 	"github.com/ry461ch/metric-collector/internal/storage"
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
 	"github.com/ry461ch/metric-collector/internal/storage/postgres"
@@ -35,13 +34,14 @@ func Run() {
 	// initialize storage
 	var metricStorage storage.Storage
 	if cfg.DBDsn != "" {
-		metricStorage, _ = pgstorage.NewPGStorage(context.Background(), cfg.DBDsn)
+		metricStorage, err := pgstorage.NewPGStorage(context.Background(), cfg.DBDsn)
+		if err == nil {
+			defer metricStorage.Close()
+		}
 	} else {
-		metricStorage = memstorage.NewMemStorage()
+		metricStorage = memstorage.NewMemStorage(context.Background())
 	}
-	defer metricStorage.Close()
-	metricService := metricservice.New(metricStorage)
-	fileWorker := fileworker.New(cfg.FileStoragePath, metricService)
+	fileWorker := fileworker.New(cfg.FileStoragePath, metricStorage)
 	if cfg.Restore {
 		err := fileWorker.ExportFromFile(context.Background())
 		if err != nil {
@@ -50,7 +50,7 @@ func Run() {
 	}
 
 	// prepare for serving
-	handleService := handlers.New(cfg, metricService, fileWorker)
+	handleService := handlers.New(cfg, metricStorage, fileWorker)
 	router := router.New(handleService)
 
 	logging.Logger.Info(cfg.Addr.String())

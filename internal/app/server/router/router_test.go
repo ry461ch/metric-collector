@@ -54,6 +54,11 @@ func (m *MockHandlers) GetJSONHandler(res http.ResponseWriter, req *http.Request
 	res.WriteHeader(http.StatusOK)
 }
 
+func (m *MockHandlers) PostMetricsHandler(res http.ResponseWriter, req *http.Request) {
+	m.pathTimesCalled["postAllJson"] += 1
+	res.WriteHeader(http.StatusOK)
+}
+
 func (m *MockHandlers) Ping(res http.ResponseWriter, req *http.Request) {
 	m.pathTimesCalled["ping"] += 1
 	res.WriteHeader(http.StatusOK)
@@ -267,6 +272,14 @@ func TestRouter(t *testing.T) {
 			requestContentType:      jsonContentType,
 			expectedCode:            http.StatusOK,
 			expectedPathTimesCalled: map[string]int64{"ping": 1},
+		},
+		{
+			testName:                "ok for post metrics",
+			method:                  http.MethodPost,
+			requestPath:             "/updates/",
+			requestContentType:      jsonContentType,
+			expectedCode:            http.StatusOK,
+			expectedPathTimesCalled: map[string]int64{"postAllJson": 1},
 		},
 	}
 	logging.Initialize("INFO")

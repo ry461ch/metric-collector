@@ -17,7 +17,6 @@ import (
 	"github.com/ry461ch/metric-collector/internal/app/agent/config"
 	"github.com/ry461ch/metric-collector/internal/models/netaddr"
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
-	"github.com/ry461ch/metric-collector/internal/metricservice"
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
 )
 
@@ -32,8 +31,8 @@ func (m *MockServerStorage) handler(res http.ResponseWriter, req *http.Request) 
 
 	var buf bytes.Buffer
 	buf.ReadFrom(req.Body)
-	metric := metrics.Metrics{}
-	json.Unmarshal(buf.Bytes(), &metric)
+	metricList := []metrics.Metric{}
+	json.Unmarshal(buf.Bytes(), &metricList)
 
 	if m.metricsCounter == nil {
 		m.metricsCounter = map[string]int64{}
@@ -42,11 +41,13 @@ func (m *MockServerStorage) handler(res http.ResponseWriter, req *http.Request) 
 		m.metricsGauge = map[string]float64{}
 	}
 
-	switch metric.MType {
-	case "gauge":
-		m.metricsGauge[metric.ID] = *metric.Value
-	case "counter":
-		m.metricsCounter[metric.ID] = *metric.Delta
+	for _, metric := range metricList {
+		switch metric.MType {
+		case "gauge":
+			m.metricsGauge[metric.ID] = *metric.Value
+		case "counter":
+			m.metricsCounter[metric.ID] = *metric.Delta
+		}
 	}
 }
 
@@ -64,24 +65,22 @@ func splitURL(URL string) *netaddr.NetAddress {
 }
 
 func TestCollectMetric(t *testing.T) {
-	metricStorage := memstorage.MemStorage{}
-	metricService := metricservice.New(&metricStorage)
-	agent := New(&TimeState{}, &config.Config{}, metricService)
+	metricStorage := memstorage.NewMemStorage(context.TODO())
+	agent := New(&TimeState{}, &config.Config{}, metricStorage)
 	agent.collectMetric(context.TODO())
 
-	storedGaugeValues, _ := metricStorage.GetGaugeValues(context.TODO())
+	storedMetrics, _ := metricStorage.ExtractMetrics(context.TODO())
 
-	assert.Equal(t, 28, len(storedGaugeValues), "Несовпадает количество отслеживаемых метрик")
-	assert.Contains(t, storedGaugeValues, "NextGC")
-	assert.Contains(t, storedGaugeValues, "HeapIdle")
-	assert.Contains(t, storedGaugeValues, "RandomValue")
-	val, _, _ := metricStorage.GetCounterValue(context.TODO(), "PollCount")
-	assert.Equal(t, int64(1), val)
+	assert.Equal(t, 29, len(storedMetrics), "Несовпадает количество отслеживаемых метрик")
 
 	agent.collectMetric(context.TODO())
 
-	val, _, _ = metricStorage.GetCounterValue(context.TODO(), "PollCount")
-	assert.Equal(t, int64(2), val)
+	searchMetric := metrics.Metric{
+		ID: "PollCount",
+		MType: "counter",
+	}
+	metricStorage.GetMetric(context.TODO(), &searchMetric)
+	assert.Equal(t, int64(2), *searchMetric.Delta)
 }
 
 func TestSendMetric(t *testing.T) {
@@ -90,21 +89,48 @@ func TestSendMetric(t *testing.T) {
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
-	agentStorage := memstorage.MemStorage{}
+	agentStorage := memstorage.NewMemStorage(context.TODO())
 
-	agentStorage.UpdateGaugeValue(context.TODO(), "test_1", 10.0)
-	agentStorage.UpdateGaugeValue(context.TODO(), "test_2", 10.0)
-	agentStorage.UpdateGaugeValue(context.TODO(), "test_3", 10.0)
-	agentStorage.UpdateCounterValue(context.TODO(), "test_4", 10)
-	agentStorage.UpdateCounterValue(context.TODO(), "test_5", 7)
+	testFirstCounterValue := int64(10)
+	testSecondCounterValue := int64(7)
+	testFirstGaugeValue := float64(10.0)
+	testSecondGaugeValue := float64(7.0)
+	testThirdGaugeValue := float64(7.0)
+	metricList := []metrics.Metric{
+		{
+			ID: "test_1",
+			MType: "counter",
+			Delta: &testFirstCounterValue,
+		},
+		{
+			ID: "test_2",
+			MType: "counter",
+			Delta: &testSecondCounterValue,
+		},
+		{
+			ID: "test_3",
+			MType: "gauge",
+			Value: &testFirstGaugeValue,
+		},
+		{
+			ID: "test_4",
+			MType: "gauge",
+			Value: &testSecondGaugeValue,
+		},
+		{
+			ID: "test_5",
+			MType: "gauge",
+			Value: &testThirdGaugeValue,
+		},
+	}
+	agentStorage.SaveMetrics(context.TODO(), metricList)
 
-	metricService := metricservice.New(&agentStorage)
-	agent := New(&TimeState{}, &config.Config{Addr: *splitURL(srv.URL)}, metricService)
+	agent := New(&TimeState{}, &config.Config{Addr: *splitURL(srv.URL)}, agentStorage)
 
 	agent.sendMetrics(context.TODO())
-	assert.Equal(t, int64(5), serverStorage.timesCalled, "Не прошел запрос на сервер")
-	assert.Equal(t, float64(10.0), serverStorage.metricsGauge["test_2"], "Неправильно записалась метрика в хранилище")
-	assert.Equal(t, int64(10), serverStorage.metricsCounter["test_4"], "Неправильно записалась метрика в хранилище")
+	assert.Equal(t, int64(1), serverStorage.timesCalled, "Не прошел запрос на сервер")
+	assert.Equal(t, float64(10.0), serverStorage.metricsGauge["test_3"], "Неправильно записалась метрика в хранилище")
+	assert.Equal(t, int64(10), serverStorage.metricsCounter["test_1"], "Неправильно записалась метрика в хранилище")
 }
 
 func TestRun(t *testing.T) {
@@ -113,25 +139,29 @@ func TestRun(t *testing.T) {
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
-	agentStorage := memstorage.MemStorage{}
+	agentStorage := memstorage.NewMemStorage(context.TODO())
 	config := config.Config{ReportIntervalSec: 6, PollIntervalSec: 3, Addr: *splitURL(srv.URL)}
 	timeState := TimeState{LastCollectMetricTime: time.Now(), LastSendMetricTime: time.Now()}
 
-	metricService := metricservice.New(&agentStorage)
-	agent := New(&timeState, &config, metricService)
+	agent := New(&timeState, &config, agentStorage)
 
 	agent.runIteration(context.TODO())
-	pollCount, _, _ := agentStorage.GetCounterValue(context.TODO(), "PollCount")
-	assert.Equal(t, int64(0), pollCount, "Вызвался collect metric, хотя еще не должен был")
+
+	searchMetric := metrics.Metric{
+		ID: "PollCount",
+		MType: "counter",
+	}
+	agentStorage.GetMetric(context.TODO(), &searchMetric)
+	assert.Nil(t, searchMetric.Delta, "Вызвался collect metric, хотя еще не должен был")
 
 	timeState.LastCollectMetricTime = time.Now().Add(-time.Second * 4)
 	agent.runIteration(context.TODO())
-	pollCount, _, _ = agentStorage.GetCounterValue(context.TODO(), "PollCount")
-	assert.Equal(t, int64(1), pollCount, "Кол-во вызовов collectMetric не совпадает с ожидаемым")
+	agentStorage.GetMetric(context.TODO(), &searchMetric)
+	assert.Equal(t, int64(1), *searchMetric.Delta, "Кол-во вызовов collectMetric не совпадает с ожидаемым")
 
 	timeState.LastSendMetricTime = time.Now().Add(-time.Second * 7)
 	agent.runIteration(context.TODO())
 	assert.Less(t, int64(0), serverStorage.timesCalled, "Не прошел запрос на сервер")
-	pollCount, _, _ = agentStorage.GetCounterValue(context.TODO(), "PollCount")
-	assert.Equal(t, int64(1), pollCount, "Кол-во вызовов collectMetric не совпадает с ожидаемым")
+	agentStorage.GetMetric(context.TODO(), &searchMetric)
+	assert.Equal(t, int64(1), *searchMetric.Delta, "Кол-во вызовов collectMetric не совпадает с ожидаемым")
 }

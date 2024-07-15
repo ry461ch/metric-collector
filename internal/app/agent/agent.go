@@ -14,7 +14,6 @@ import (
 	"gopkg.in/resty.v1"
 
 	"github.com/ry461ch/metric-collector/internal/app/agent/config"
-	"github.com/ry461ch/metric-collector/internal/metricservice"
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
 )
@@ -28,15 +27,15 @@ type (
 	Agent struct {
 		timeState *TimeState
 		config   *config.Config
-		metricService  *metricservice.MetricService
+		memStorage  *memstorage.MemStorage
 	}
 )
 
-func New(timeState *TimeState, config *config.Config, metricService *metricservice.MetricService) *Agent {
+func New(timeState *TimeState, config *config.Config, memStorage *memstorage.MemStorage) *Agent {
 	return &Agent{
 		timeState: timeState,
 		config: config,
-		metricService: metricService,
+		memStorage: memStorage,
 	}
 }
 
@@ -78,22 +77,22 @@ func (a *Agent) collectMetric(ctx context.Context) {
 	metricCounterMap := map[string]int64{}
 	metricCounterMap["PollCount"] = 1
 
-	metricList := []metrics.Metrics{}
+	metricList := []metrics.Metric{}
 	for key, val := range metricGaugeMap {
-		metricList = append(metricList, metrics.Metrics{
+		metricList = append(metricList, metrics.Metric{
 			ID:    key,
 			MType: "gauge",
 			Value: &val,
 		})
 	}
 	for key, val := range metricCounterMap {
-		metricList = append(metricList, metrics.Metrics{
+		metricList = append(metricList, metrics.Metric{
 			ID:    key,
 			MType: "counter",
 			Delta: &val,
 		})
 	}
-	a.metricService.SaveMetrics(ctx, metricList)
+	a.memStorage.SaveMetrics(ctx, metricList)
 	log.Println("Successfully got all metrics")
 }
 
@@ -103,21 +102,20 @@ func (a *Agent) sendMetrics(ctx context.Context) error {
 
 	client := resty.New()
 
-	metricList, _ := a.metricService.ExtractMetrics(ctx)
-
-	for _, metric := range metricList {
-		req, _ := json.Marshal(metric)
-		resp, err := client.R().
-			SetHeader("Content-Type", "application/json").
-			SetBody(req).
-			Post(serverURL + "/update/")
-		if err != nil {
-			return fmt.Errorf("server broken or timeouted: %s", err.Error())
-		}
-		if resp.StatusCode() != http.StatusOK {
-			return fmt.Errorf("invalid request, server returned: %d", resp.StatusCode())
-		}
+	metricList, _ := a.memStorage.ExtractMetrics(ctx)
+	req, _ := json.Marshal(metricList)
+	
+	resp, err := client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(req).
+		Post(serverURL + "/updates/")
+	if err != nil {
+		return fmt.Errorf("server broken or timeouted: %s", err.Error())
 	}
+	if resp.StatusCode() != http.StatusOK {
+		return fmt.Errorf("invalid request, server returned: %d", resp.StatusCode())
+	}
+
 	log.Println("Successfully send all metrics")
 	return nil
 }
@@ -146,8 +144,8 @@ func Run() {
 	log.Println(cfg.Addr.String())
 	ctx := context.Background()
 
-	metricService := metricservice.New(&memstorage.MemStorage{})
-	mAgent := New(&TimeState{}, cfg, metricService)
+	memStorage := memstorage.NewMemStorage(ctx)
+	mAgent := New(&TimeState{}, cfg, memStorage)
 	for {
 		mAgent.runIteration(ctx)
 		time.Sleep(time.Second)

@@ -1,15 +1,15 @@
 package storage
 
-import "context"
+import (
+	"context"
+
+	"github.com/ry461ch/metric-collector/internal/models/metrics"
+)
 
 type Storage interface {
-	UpdateGaugeValue(ctx context.Context, key string, value float64) error
-	GetGaugeValue(ctx context.Context, key string) (float64, bool, error)
-	UpdateCounterValue(ctx context.Context, key string, value int64) error
-	GetCounterValue(ctx context.Context, key string) (int64, bool, error)
-
-	GetGaugeValues(ctx context.Context) (map[string]float64, error)
-	GetCounterValues(ctx context.Context) (map[string]int64, error)
+	ExtractMetrics(ctx context.Context) ([]metrics.Metric, error)
+	SaveMetrics(ctx context.Context, metricList []metrics.Metric) error
+	GetMetric(ctx context.Context, metric *metrics.Metric) error
 	Ping(ctx context.Context) bool
 	Close()
 }

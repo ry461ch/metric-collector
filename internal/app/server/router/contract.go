@@ -12,5 +12,6 @@ type metricHandlers interface {
 	GetPlainAllMetricsHandler(res http.ResponseWriter, req *http.Request)
 	PostJSONHandler(res http.ResponseWriter, req *http.Request)
 	GetJSONHandler(res http.ResponseWriter, req *http.Request)
+	PostMetricsHandler(res http.ResponseWriter, req *http.Request)
 	Ping(res http.ResponseWriter, req *http.Request)
 }

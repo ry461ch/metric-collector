@@ -7,23 +7,23 @@ import (
 	"context"
 
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
-	"github.com/ry461ch/metric-collector/internal/metricservice"
+	"github.com/ry461ch/metric-collector/internal/storage"
 )
 
 type FileWorker struct {
 	filePath string
-	metricService *metricservice.MetricService
+	metricStorage storage.Storage
 }
 
-func New(filePath string, metricService *metricservice.MetricService) *FileWorker {
-	return &FileWorker{filePath: filePath, metricService: metricService}
+func New(filePath string, metricStorage storage.Storage) *FileWorker {
+	return &FileWorker{filePath: filePath, metricStorage: metricStorage}
 }
 
 // Here we write all the data into one variable, because we store
 // all data in memory, so we can assume that we have
 // enough memory to duplicate our metric data
 func (fw *FileWorker) ExportFromFile(ctx context.Context) error {
-	metricList := []metrics.Metrics{}
+	metricList := []metrics.Metric{}
 
 	file, err := os.OpenFile(fw.filePath, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
@@ -47,7 +47,7 @@ func (fw *FileWorker) ExportFromFile(ctx context.Context) error {
 		return err
 	}
 
-	err = fw.metricService.SaveMetrics(ctx, metricList)
+	err = fw.metricStorage.SaveMetrics(ctx, metricList)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (fw *FileWorker) ExportFromFile(ctx context.Context) error {
 }
 
 func (fw *FileWorker) ImportToFile(ctx context.Context) error {
-	metricList, err := fw.metricService.ExtractMetrics(ctx)
+	metricList, err := fw.metricStorage.ExtractMetrics(ctx)
 	if err != nil {
 		return err
 	}

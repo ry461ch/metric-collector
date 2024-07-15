@@ -5,60 +5,106 @@ import (
 	"context"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/ry461ch/metric-collector/internal/models/metrics"
 )
 
-func TestGaugeValues(t *testing.T) {
-	storage := MemStorage{}
+func TestGauge(t *testing.T) {
+	storage := NewMemStorage(context.TODO())
 
-	storage.UpdateGaugeValue(context.TODO(),"test", 10.0)
-	storage.UpdateGaugeValue(context.TODO(),"test", 12.0)
-
-	val, _, _ := storage.GetGaugeValue(context.TODO(), "test")
-	assert.Equal(t, float64(12.0), val, "неверно обновляется gauge метрика")
-
-	storage.UpdateGaugeValue(context.TODO(),"test_2", 11.6)
-	storage.UpdateGaugeValue(context.TODO(),"test_3", 13.5)
-
-	_, ok, _ := storage.GetGaugeValue(context.TODO(),"unknown")
-	assert.False(t, ok)
-
-	expectedGaugeValues := map[string]float64{
-		"test":   12.0,
-		"test_2": 11.6,
-		"test_3": 13.5,
+	mValue := 10.0
+	metricList := []metrics.Metric{
+		{
+			ID: "test",
+			MType: "gauge",
+			Value: &mValue,
+		},
 	}
-
-	gaugeValues, _ := storage.GetGaugeValues(context.TODO())
-	assert.Equal(t, 3, len(gaugeValues), "Кол-во метрик типа gauge не совпадает с ожидаемым")
-	for key, val := range gaugeValues {
-		assert.Equal(t, float64(expectedGaugeValues[key]), val, "Значение метрики типа gauge не совпадает с ожидаемым")
+	storage.SaveMetrics(context.TODO(), metricList)
+	mNewValue := 12.0
+	metricList = []metrics.Metric{
+		{
+			ID: "test",
+			MType: "gauge",
+			Value: &mNewValue,
+		},
 	}
+	storage.SaveMetrics(context.TODO(), metricList)
+
+	searchMetric := metrics.Metric{
+		ID: "test",
+		MType: "gauge",
+	}
+	storage.GetMetric(context.TODO(), &searchMetric)
+	assert.Equal(t, float64(12.0), *searchMetric.Value, "неверно обновляется gauge метрика")
+	
+	notExistsMetric := metrics.Metric{
+		ID: "unknown",
+		MType: "gauge",
+	}
+	err := storage.GetMetric(context.TODO(), &notExistsMetric)
+
+	assert.Error(t, err)
 }
 
-func TestCounterValues(t *testing.T) {
-	storage := MemStorage{}
+func TestCounter(t *testing.T) {
+	storage := NewMemStorage(context.TODO())
 
-	storage.UpdateCounterValue(context.TODO(), "test", 10)
-	storage.UpdateCounterValue(context.TODO(), "test", 12)
-
-	val, _, _ := storage.GetCounterValue(context.TODO(), "test")
-	assert.Equal(t, int64(22), val, "неверно обновляется counter метрика")
-
-	storage.UpdateCounterValue(context.TODO(), "test_2", 11)
-	storage.UpdateCounterValue(context.TODO(), "test_3", 13)
-
-	_, ok, _ := storage.GetCounterValue(context.TODO(), "unknown")
-	assert.False(t, ok)
-
-	expectedCounterValues := map[string]int64{
-		"test":   22,
-		"test_2": 11,
-		"test_3": 13,
+	mValue := int64(10)
+	metricList := []metrics.Metric{
+		{
+			ID: "test",
+			MType: "counter",
+			Delta: &mValue,
+		},
 	}
-
-	counterValues, _ := storage.GetCounterValues(context.TODO())
-	assert.Equal(t, 3, len(counterValues), "Кол-во метрик типа counter не совпадает с ожидаемым")
-	for key, val := range counterValues {
-		assert.Equal(t, int64(expectedCounterValues[key]), val, "Значение метрики типа counter не совпадает с ожидаемым")
+	storage.SaveMetrics(context.TODO(), metricList)
+	mNewValue := int64(12)
+	metricList = []metrics.Metric{
+		{
+			ID: "test",
+			MType: "counter",
+			Delta: &mNewValue,
+		},
 	}
+	storage.SaveMetrics(context.TODO(), metricList)
+
+	searchMetric := metrics.Metric{
+		ID: "test",
+		MType: "counter",
+	}
+	storage.GetMetric(context.TODO(), &searchMetric)
+	assert.Equal(t, int64(22), *searchMetric.Delta, "неверно обновляется counter метрика")
+	
+	notExistsMetric := metrics.Metric{
+		ID: "unknown",
+		MType: "counter",
+	}
+	err := storage.GetMetric(context.TODO(), &notExistsMetric)
+
+	assert.Error(t, err)
+}
+
+func TestExtractAll(t *testing.T) {
+	storage := NewMemStorage(context.TODO())
+
+	mCounterValue := int64(10)
+	mGaugeValue := float64(12.0)
+	metricList := []metrics.Metric{
+		{
+			ID: "test",
+			MType: "counter",
+			Delta: &mCounterValue,
+		},
+		{
+			ID: "test",
+			MType: "gauge",
+			Value: &mGaugeValue,
+		},
+	}
+	storage.SaveMetrics(context.TODO(), metricList)
+
+	resultMetrics, _ := storage.ExtractMetrics(context.TODO())
+
+	assert.Equal(t, 2, len(resultMetrics), "Кол-во метрик не совпадает с ожидаемым")
 }
