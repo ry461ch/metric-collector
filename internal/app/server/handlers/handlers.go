@@ -6,6 +6,9 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"database/sql"
+	"time"
+	"context"
 
 	"github.com/go-chi/chi/v5"
 
@@ -20,13 +23,15 @@ type Handlers struct {
 	config  *config.Config
 	metricService *metricservice.MetricService
 	fileWorker  *fileworker.FileWorker
+	db *sql.DB
 }
 
-func New(config *config.Config, metricService *metricservice.MetricService, fileWorker *fileworker.FileWorker) *Handlers {
+func New(config *config.Config, metricService *metricservice.MetricService, fileWorker *fileworker.FileWorker, db *sql.DB) *Handlers {
 	return &Handlers{
 		metricService: metricService,
 		config: config,
 		fileWorker: fileWorker,
+		db: db,
 	}
 }
 
@@ -197,4 +202,16 @@ func (h *Handlers) GetJSONHandler(res http.ResponseWriter, req *http.Request) {
 	}
 	res.WriteHeader(http.StatusOK)
 	res.Write(resp)
+}
+
+func (h *Handlers) Ping(res http.ResponseWriter, req *http.Request) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+    defer cancel()
+    if err := h.db.PingContext(ctx); err != nil {
+        resp, _ := json.Marshal(response.ResponseErrorObject{Detail: "Internal server error"})
+		res.Write(resp)
+		res.WriteHeader(http.StatusInternalServerError)
+		return
+    }
+	res.WriteHeader(http.StatusOK)
 }

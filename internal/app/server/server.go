@@ -7,6 +7,9 @@ import (
 	"os/signal"
 	"strconv"
 	"sync"
+	"database/sql"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/ry461ch/metric-collector/internal/app/server/config"
 	"github.com/ry461ch/metric-collector/internal/app/server/crontasks/snapshotmaker"
@@ -27,6 +30,10 @@ func Run() {
 	// set logger
 	logging.Initialize(cfg.LogLevel)
 
+	// Init db
+	db, _ := sql.Open("pgx", cfg.Db_dsn)
+	defer db.Close()
+
 	// initialize storage
 	metricStorage := memstorage.MemStorage{}
 	metricService := metricservice.New(&metricStorage)
@@ -39,7 +46,7 @@ func Run() {
 	}
 
 	// prepare for serving
-	handleService := handlers.New(cfg, metricService, fileWorker)
+	handleService := handlers.New(cfg, metricService, fileWorker, db)
 	router := router.New(handleService)
 
 	logging.Logger.Info(cfg.Addr.String())
