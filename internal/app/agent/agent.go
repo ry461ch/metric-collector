@@ -108,8 +108,7 @@ func (a *Agent) sendMetrics(ctx context.Context) error {
 	}
 	req, _ := json.Marshal(metricList)
 
-
-	for i := 1; i < 7; i+=2 {
+	for i := 1; i < 7; i += 2 {
 		resp, err := client.R().
 			SetHeader("Content-Type", "application/json").
 			SetBody(req).

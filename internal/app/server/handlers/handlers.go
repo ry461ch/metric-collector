@@ -33,7 +33,6 @@ func New(config *config.Config, metricStorage storage.Storage, fileWorker *filew
 	}
 }
 
-
 func (h *Handlers) PostPlainGaugeHandler(res http.ResponseWriter, req *http.Request) {
 	metricName := chi.URLParam(req, "name")
 	metricVal, err := strconv.ParseFloat(chi.URLParam(req, "value"), 64)
@@ -47,7 +46,7 @@ func (h *Handlers) PostPlainGaugeHandler(res http.ResponseWriter, req *http.Requ
 		Value: &metricVal,
 	}
 
-	for i := 1; i <= 7; i+=2 {
+	for i := 1; i <= 7; i += 2 {
 		DBCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
 		defer cancel()
 		err = h.metricStorage.SaveMetrics(DBCtx, []metrics.Metric{metric})
@@ -88,7 +87,7 @@ func (h *Handlers) PostPlainCounterHandler(res http.ResponseWriter, req *http.Re
 		Delta: &metricVal,
 	}
 
-	for i := 1; i <= 7; i+=2 {
+	for i := 1; i <= 7; i += 2 {
 		DBCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
 		defer cancel()
 		err = h.metricStorage.SaveMetrics(DBCtx, []metrics.Metric{metric})
@@ -123,7 +122,7 @@ func (h *Handlers) GetPlainCounterHandler(res http.ResponseWriter, req *http.Req
 		MType: "counter",
 	}
 
-	for i := 1; i <= 7; i+=2 {
+	for i := 1; i <= 7; i += 2 {
 		DBCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
 		defer cancel()
 		err := h.metricStorage.GetMetric(DBCtx, &metric)
@@ -157,7 +156,7 @@ func (h *Handlers) GetPlainGaugeHandler(res http.ResponseWriter, req *http.Reque
 		MType: "gauge",
 	}
 
-	for i := 1; i <= 7; i+=2 {
+	for i := 1; i <= 7; i += 2 {
 		DBCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
 		defer cancel()
 		err := h.metricStorage.GetMetric(DBCtx, &metric)
@@ -188,7 +187,7 @@ func (h *Handlers) GetPlainAllMetricsHandler(res http.ResponseWriter, req *http.
 	res.Header().Set("Content-Type", "text/html; charset=utf-8")
 
 	metricList := []metrics.Metric{}
-	for i := 1; i <= 7; i+=2 {
+	for i := 1; i <= 7; i += 2 {
 		DBCtx, cancel := context.WithTimeout(req.Context(), 4*time.Second)
 		defer cancel()
 		metricExtracted, err := h.metricStorage.ExtractMetrics(DBCtx)
@@ -238,7 +237,7 @@ func (h *Handlers) PostJSONHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	for i := 1; i <= 7; i+=2 {
+	for i := 1; i <= 7; i += 2 {
 		DBCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
 		defer cancel()
 		err = h.metricStorage.SaveMetrics(DBCtx, []metrics.Metric{metric})
@@ -297,7 +296,7 @@ func (h *Handlers) GetJSONHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	for i := 1; i <= 7; i+=2 {
+	for i := 1; i <= 7; i += 2 {
 		DBCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
 		defer cancel()
 		err = h.metricStorage.GetMetric(DBCtx, &metric)
@@ -374,7 +373,7 @@ func (h *Handlers) PostMetricsHandler(res http.ResponseWriter, req *http.Request
 		return
 	}
 
-	for i := 1; i <= 7; i+=2 {
+	for i := 1; i <= 7; i += 2 {
 		DBCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
 		defer cancel()
 		err = h.metricStorage.SaveMetrics(DBCtx, metricList)
