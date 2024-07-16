@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
+	"github.com/ry461ch/metric-collector/pkg/logging"
 )
 
 type PGStorage struct {
@@ -43,7 +44,7 @@ func NewPGStorage(ctx context.Context, DBDsn string) (*PGStorage, error) {
 	db, err := sql.Open("pgx", DBDsn)
 
 	if err != nil {
-		return nil, err
+		return &PGStorage{db: nil}, err
 	}
 
 	requests := strings.Split(getDDL(), ";")
@@ -52,7 +53,7 @@ func NewPGStorage(ctx context.Context, DBDsn string) (*PGStorage, error) {
 		if request != "" {
 			_, err := db.ExecContext(ctx, request)
 			if err != nil {
-				return nil, err
+				return &PGStorage{db: nil}, err
 			}
 		}
 	}
@@ -60,10 +61,16 @@ func NewPGStorage(ctx context.Context, DBDsn string) (*PGStorage, error) {
 }
 
 func (pg *PGStorage) Close() {
+	if pg.db == nil {
+		logging.Logger.Warnln("Database was not initiated")
+	}
 	pg.db.Close()
 }
 
 func (pg *PGStorage) Ping(ctx context.Context) bool {
+	if pg.db == nil {
+		return false
+	}
 	if err := pg.db.PingContext(ctx); err != nil {
 		return false
     }
@@ -72,6 +79,9 @@ func (pg *PGStorage) Ping(ctx context.Context) bool {
 
 
 func (pg *PGStorage) SaveMetrics(ctx context.Context, metricList []metrics.Metric) error {
+	if !pg.Ping(ctx) {
+		return errors.New("DATABASE_UNAVAILABLE")
+	}
 	gaugeMetrics := map[string]float64{}
 	counterMetrics := map[string]int64{}
 
@@ -94,7 +104,7 @@ func (pg *PGStorage) SaveMetrics(ctx context.Context, metricList []metrics.Metri
 			if metric.Delta == nil {
 				return errors.New("INVALID_METRIC")
 			}
-			counterMetrics[metric.ID] = *metric.Delta
+			counterMetrics[metric.ID] += *metric.Delta
 		default:
 			return errors.New("INVALID_METRIC")
 		}
@@ -148,6 +158,9 @@ func (pg *PGStorage) SaveMetrics(ctx context.Context, metricList []metrics.Metri
 }
 
 func (pg *PGStorage) ExtractMetrics(ctx context.Context) ([]metrics.Metric, error) {
+	if !pg.Ping(ctx) {
+		return nil, errors.New("DATABASE_UNAVAILABLE")
+	}
 	metricList := []metrics.Metric{}
 	
 	// get gauge metrics
@@ -179,7 +192,7 @@ func (pg *PGStorage) ExtractMetrics(ctx context.Context) ([]metrics.Metric, erro
     }
 
 	// get counter metrics
-	getCounterQuery := "SELECT value FROM content.counter_metrics"
+	getCounterQuery := "SELECT delta FROM content.counter_metrics"
 	rows, err = pg.db.QueryContext(ctx, getCounterQuery)
 	if err != nil {
         return nil, err
@@ -210,28 +223,25 @@ func (pg *PGStorage) ExtractMetrics(ctx context.Context) ([]metrics.Metric, erro
 }
 
 func (pg *PGStorage) GetMetric(ctx context.Context, metric *metrics.Metric) error {
+	if !pg.Ping(ctx) {
+		return errors.New("DATABASE_UNAVAILABLE")
+	}
 	switch (metric.MType) {
 	case "gauge":
 		query := "SELECT value FROM content.gauge_metrics WHERE name = $1"
 		row := pg.db.QueryRowContext(ctx, query, metric.ID)
 		var value sql.NullFloat64
 		err := row.Scan(&value)
-		if err != nil {
-			return err
-		}
-		if !value.Valid {
+		if err == sql.ErrNoRows || !value.Valid{
 			return errors.New("NOT_FOUND")
 		}
 		metric.Value = &value.Float64
 	case "counter":
-		query := "SELECT delta FROM content.counter_metrics WHERE name = $1;"
+		query := "SELECT delta FROM content.counter_metrics WHERE name = $1"
 		row := pg.db.QueryRowContext(ctx, query, metric.ID)
 		var value sql.NullInt64
 		err := row.Scan(&value)
-		if err != nil {
-			return err
-		}
-		if !value.Valid {
+		if err == sql.ErrNoRows || !value.Valid{
 			return errors.New("NOT_FOUND")
 		}
 		metric.Delta = &value.Int64

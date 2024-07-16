@@ -46,7 +46,7 @@ func Run() {
 	}
 
 	fileWorker := fileworker.New(cfg.FileStoragePath, mStorage)
-	if cfg.Restore {
+	if cfg.Restore && cfg.DBDsn == "" {
 		fileWorker.ExportFromFile(context.Background())
 	}
 
