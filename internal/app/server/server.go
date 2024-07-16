@@ -22,6 +22,14 @@ import (
 	"github.com/ry461ch/metric-collector/pkg/logging"
 )
 
+func getStorage(cfg *config.Config) (storage.Storage, error) {
+	if cfg.DBDsn != "" {
+		return pgstorage.NewPGStorage(context.Background(), cfg.DBDsn)
+	} else {
+		return memstorage.NewMemStorage(context.Background()), nil
+	}
+}
+
 func Run() {
 	// parse args and env
 	cfg := config.NewConfig()
@@ -32,28 +40,20 @@ func Run() {
 	logging.Initialize(cfg.LogLevel)
 
 	// initialize storage
-	var metricStorage storage.Storage
-	if cfg.DBDsn != "" {
-		metricStorage, err := pgstorage.NewPGStorage(context.Background(), cfg.DBDsn)
-		if err == nil {
-			defer metricStorage.Close()
-		}
-	} else {
-		metricStorage = memstorage.NewMemStorage(context.Background())
-	}
-	fileWorker := fileworker.New(cfg.FileStoragePath, metricStorage)
-	if cfg.Restore {
-		err := fileWorker.ExportFromFile(context.Background())
-		if err != nil {
-			panic(err)
-		}
+	mStorage, err := getStorage(cfg)
+	if err == nil {
+		defer mStorage.Close()
 	}
 
-	// prepare for serving
-	handleService := handlers.New(cfg, metricStorage, fileWorker)
+	fileWorker := fileworker.New(cfg.FileStoragePath, mStorage)
+	if cfg.Restore {
+		fileWorker.ExportFromFile(context.Background())
+	}
+
+	handleService := handlers.New(cfg, mStorage, fileWorker)
 	router := router.New(handleService)
 
-	logging.Logger.Info(cfg.Addr.String())
+	logging.Logger.Info("Server is running: ", cfg.Addr.String())
 	if cfg.StoreInterval != int64(0) {
 		var wg sync.WaitGroup
 		wg.Add(3)

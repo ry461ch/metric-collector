@@ -103,6 +103,9 @@ func (a *Agent) sendMetrics(ctx context.Context) error {
 	client := resty.New()
 
 	metricList, _ := a.memStorage.ExtractMetrics(ctx)
+	if len(metricList) == 0 {
+		return nil
+	}
 	req, _ := json.Marshal(metricList)
 	
 	resp, err := client.R().

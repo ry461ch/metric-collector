@@ -2,9 +2,10 @@ package fileworker
 
 import (
 	"bytes"
-	"encoding/json"
-	"os"
 	"context"
+	"encoding/json"
+	"errors"
+	"os"
 
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 	"github.com/ry461ch/metric-collector/internal/storage"
@@ -23,6 +24,9 @@ func New(filePath string, metricStorage storage.Storage) *FileWorker {
 // all data in memory, so we can assume that we have
 // enough memory to duplicate our metric data
 func (fw *FileWorker) ExportFromFile(ctx context.Context) error {
+	if fw.metricStorage == nil {
+		return errors.New("DB_NOT_INITIALIZED")
+	}
 	metricList := []metrics.Metric{}
 
 	file, err := os.OpenFile(fw.filePath, os.O_RDONLY|os.O_CREATE, 0666)
@@ -55,6 +59,9 @@ func (fw *FileWorker) ExportFromFile(ctx context.Context) error {
 }
 
 func (fw *FileWorker) ImportToFile(ctx context.Context) error {
+	if fw.metricStorage == nil {
+		return errors.New("DB_NOT_INITIALIZED")
+	}
 	metricList, err := fw.metricStorage.ExtractMetrics(ctx)
 	if err != nil {
 		return err

@@ -13,9 +13,9 @@ import (
 
 	"github.com/ry461ch/metric-collector/internal/app/server/config"
 	"github.com/ry461ch/metric-collector/internal/fileworker"
-	"github.com/ry461ch/metric-collector/internal/storage"
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 	"github.com/ry461ch/metric-collector/internal/models/response"
+	"github.com/ry461ch/metric-collector/internal/storage"
 )
 
 type Handlers struct {
@@ -277,7 +277,7 @@ func (h *Handlers) GetJSONHandler(res http.ResponseWriter, req *http.Request) {
 func (h *Handlers) Ping(res http.ResponseWriter, req *http.Request) {
 	ctx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
     defer cancel()
-    if !h.metricStorage.Ping(ctx) {
+    if h.metricStorage == nil || !h.metricStorage.Ping(ctx) {
 		res.WriteHeader(http.StatusInternalServerError)
 		return
     }

@@ -3,8 +3,8 @@ package pgstorage
 import (
 	"context"
 	"database/sql"
-	"strings"
 	"errors"
+	"strings"
 
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 )
@@ -60,7 +60,7 @@ func NewPGStorage(ctx context.Context, DBDsn string) (*PGStorage, error) {
 }
 
 func (pg *PGStorage) Close() {
-	defer pg.db.Close()
+	pg.db.Close()
 }
 
 func (pg *PGStorage) Ping(ctx context.Context) bool {
