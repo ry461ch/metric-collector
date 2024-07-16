@@ -200,10 +200,8 @@ func (h *Handlers) GetPlainAllMetricsHandler(res http.ResponseWriter, req *http.
 			time.Sleep(time.Second * time.Duration(i))
 			continue
 		}
-		if err != nil {
-			res.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		res.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	for _, metric := range metricList {
