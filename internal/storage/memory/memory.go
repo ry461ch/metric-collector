@@ -12,7 +12,6 @@ type MemStorage struct {
 	gauge   map[string]float64
 }
 
-
 func NewMemStorage(ctx context.Context) *MemStorage {
 	return &MemStorage{counter: map[string]int64{}, gauge: map[string]float64{}}
 }
@@ -22,7 +21,6 @@ func (ms *MemStorage) Ping(ctx context.Context) bool {
 }
 
 func (ms *MemStorage) Close() {}
-
 
 func (ms *MemStorage) SaveMetrics(ctx context.Context, metricList []metrics.Metric) error {
 	// prepare arrays
@@ -56,24 +54,24 @@ func (ms *MemStorage) SaveMetrics(ctx context.Context, metricList []metrics.Metr
 func (ms *MemStorage) ExtractMetrics(ctx context.Context) ([]metrics.Metric, error) {
 	metricList := []metrics.Metric{}
 	for key, val := range ms.gauge {
-        metricList = append(metricList, metrics.Metric{
+		metricList = append(metricList, metrics.Metric{
 			ID:    key,
 			MType: "gauge",
 			Value: &val,
 		})
-    }
+	}
 	for key, val := range ms.counter {
-        metricList = append(metricList, metrics.Metric{
+		metricList = append(metricList, metrics.Metric{
 			ID:    key,
 			MType: "counter",
 			Delta: &val,
 		})
-    }
+	}
 	return metricList, nil
 }
 
 func (ms *MemStorage) GetMetric(ctx context.Context, metric *metrics.Metric) error {
-	switch (metric.MType) {
+	switch metric.MType {
 	case "gauge":
 		val, ok := ms.gauge[metric.ID]
 		if !ok {

@@ -11,7 +11,7 @@ import (
 )
 
 type PGStorage struct {
-	db	*sql.DB
+	db *sql.DB
 }
 
 func getDDL() string {
@@ -73,10 +73,9 @@ func (pg *PGStorage) Ping(ctx context.Context) bool {
 	}
 	if err := pg.db.PingContext(ctx); err != nil {
 		return false
-    }
+	}
 	return true
 }
-
 
 func (pg *PGStorage) SaveMetrics(ctx context.Context, metricList []metrics.Metric) error {
 	if !pg.Ping(ctx) {
@@ -112,9 +111,9 @@ func (pg *PGStorage) SaveMetrics(ctx context.Context, metricList []metrics.Metri
 
 	// begin trx
 	tx, err := pg.db.Begin()
-    if err != nil {
-        return err
-    }
+	if err != nil {
+		return err
+	}
 
 	// insert gauge values
 	gaugeQuery := `INSERT INTO content.gauge_metrics (name, value) 
@@ -123,8 +122,8 @@ func (pg *PGStorage) SaveMetrics(ctx context.Context, metricList []metrics.Metri
 			  SET value = $2, updated_at = CURRENT_TIMESTAMP;`
 	stmt, err := tx.PrepareContext(ctx, gaugeQuery)
 	if err != nil {
-        return err
-    }
+		return err
+	}
 	for key, val := range gaugeMetrics {
 		_, err := stmt.ExecContext(ctx, key, val)
 		if err != nil {
@@ -162,62 +161,62 @@ func (pg *PGStorage) ExtractMetrics(ctx context.Context) ([]metrics.Metric, erro
 		return nil, errors.New("DATABASE_UNAVAILABLE")
 	}
 	metricList := []metrics.Metric{}
-	
+
 	// get gauge metrics
 	getGaugeQuery := "SELECT name, value FROM content.gauge_metrics"
 	rows, err := pg.db.QueryContext(ctx, getGaugeQuery)
 	if err != nil {
-        return nil, err
-    }
+		return nil, err
+	}
 	defer rows.Close()
 
 	for rows.Next() {
-        var key string
+		var key string
 		var val float64
-        err = rows.Scan(key, val)
-        if err != nil {
-            return nil, err
-        }
+		err = rows.Scan(key, val)
+		if err != nil {
+			return nil, err
+		}
 
-        metricList = append(metricList, metrics.Metric{
+		metricList = append(metricList, metrics.Metric{
 			ID:    key,
 			MType: "gauge",
 			Value: &val,
 		})
-    }
+	}
 
-    err = rows.Err()
-    if err != nil {
-        return nil, err
-    }
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
 
 	// get counter metrics
 	getCounterQuery := "SELECT delta FROM content.counter_metrics"
 	rows, err = pg.db.QueryContext(ctx, getCounterQuery)
 	if err != nil {
-        return nil, err
-    }
+		return nil, err
+	}
 	defer rows.Close()
 
 	for rows.Next() {
-        var key string
+		var key string
 		var val int64
-        err = rows.Scan(key, val)
-        if err != nil {
-            return nil, err
-        }
+		err = rows.Scan(key, val)
+		if err != nil {
+			return nil, err
+		}
 
-        metricList = append(metricList, metrics.Metric{
+		metricList = append(metricList, metrics.Metric{
 			ID:    key,
 			MType: "counter",
 			Delta: &val,
 		})
-    }
+	}
 
-    err = rows.Err()
-    if err != nil {
-        return nil, err
-    }
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
 
 	return metricList, nil
 }
@@ -226,13 +225,13 @@ func (pg *PGStorage) GetMetric(ctx context.Context, metric *metrics.Metric) erro
 	if !pg.Ping(ctx) {
 		return errors.New("DATABASE_UNAVAILABLE")
 	}
-	switch (metric.MType) {
+	switch metric.MType {
 	case "gauge":
 		query := "SELECT value FROM content.gauge_metrics WHERE name = $1"
 		row := pg.db.QueryRowContext(ctx, query, metric.ID)
 		var value sql.NullFloat64
 		err := row.Scan(&value)
-		if err == sql.ErrNoRows || !value.Valid{
+		if err == sql.ErrNoRows || !value.Valid {
 			return errors.New("NOT_FOUND")
 		}
 		metric.Value = &value.Float64
@@ -241,7 +240,7 @@ func (pg *PGStorage) GetMetric(ctx context.Context, metric *metrics.Metric) erro
 		row := pg.db.QueryRowContext(ctx, query, metric.ID)
 		var value sql.NullInt64
 		err := row.Scan(&value)
-		if err == sql.ErrNoRows || !value.Valid{
+		if err == sql.ErrNoRows || !value.Valid {
 			return errors.New("NOT_FOUND")
 		}
 		metric.Delta = &value.Int64

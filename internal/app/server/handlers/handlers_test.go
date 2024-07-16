@@ -48,7 +48,7 @@ func TestPostTextGaugeHandler(t *testing.T) {
 	assert.Nil(t, err, "Сервер вернул 500")
 
 	searchMetric := metrics.Metric{
-		ID: "some_metric",
+		ID:    "some_metric",
 		MType: "gauge",
 	}
 	memStorage.GetMetric(context.TODO(), &searchMetric)
@@ -73,7 +73,7 @@ func TestPostTextCounterHandler(t *testing.T) {
 	assert.Nil(t, err, "Сервер вернул 500")
 
 	searchMetric := metrics.Metric{
-		ID: "some_metric",
+		ID:    "some_metric",
 		MType: "counter",
 	}
 	memStorage.GetMetric(context.TODO(), &searchMetric)
@@ -84,7 +84,7 @@ func TestGetTextGaugeHandler(t *testing.T) {
 	memStorage := memstorage.NewMemStorage(context.TODO())
 	mValue := float64(10.5)
 	metric := metrics.Metric{
-		ID: "some_metric",
+		ID:    "some_metric",
 		MType: "gauge",
 		Value: &mValue,
 	}
@@ -113,7 +113,7 @@ func TestGetTextCounterHandler(t *testing.T) {
 	memStorage := memstorage.NewMemStorage(context.TODO())
 	mValue := int64(10)
 	metric := metrics.Metric{
-		ID: "some_metric",
+		ID:    "some_metric",
 		MType: "counter",
 		Delta: &mValue,
 	}
@@ -140,29 +140,29 @@ func TestGetTextCounterHandler(t *testing.T) {
 
 func TestGetAllMetricsHandler(t *testing.T) {
 	memStorage := memstorage.NewMemStorage(context.TODO())
-	
+
 	testFirstCounterValue := int64(1)
 	testSecondCounterValue := int64(2)
 	testFirstGaugeValue := float64(1.0)
 	testSecondGaugeValue := float64(2.0)
 	metricList := []metrics.Metric{
 		{
-			ID: "counter_1",
+			ID:    "counter_1",
 			MType: "counter",
 			Delta: &testFirstCounterValue,
 		},
 		{
-			ID: "counter_2",
+			ID:    "counter_2",
 			MType: "counter",
 			Delta: &testSecondCounterValue,
 		},
 		{
-			ID: "gauge_1",
+			ID:    "gauge_1",
 			MType: "gauge",
 			Value: &testFirstGaugeValue,
 		},
 		{
-			ID: "gauge_2",
+			ID:    "gauge_2",
 			MType: "gauge",
 			Value: &testSecondGaugeValue,
 		},
@@ -362,12 +362,12 @@ func TestPostMultipleHandler(t *testing.T) {
 	counterValue := int64(10)
 	metricList := []metrics.Metric{
 		{
-			ID: "test",
+			ID:    "test",
 			MType: "gauge",
 			Value: &gaugeValue,
 		},
 		{
-			ID: "test",
+			ID:    "test",
 			MType: "counter",
 			Delta: &counterValue,
 		},
@@ -385,11 +385,11 @@ func TestPostMultipleHandler(t *testing.T) {
 	assert.Nil(t, err, "Сервер вернул 500")
 
 	searchCounterMetric := metrics.Metric{
-		ID: "test",
+		ID:    "test",
 		MType: "counter",
 	}
 	searchGaugeMetric := metrics.Metric{
-		ID: "test",
+		ID:    "test",
 		MType: "gauge",
 	}
 	memStorage.GetMetric(context.TODO(), &searchCounterMetric)

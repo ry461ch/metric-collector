@@ -1,12 +1,12 @@
 package snapshotmaker
 
 import (
-	"time"
 	"context"
+	"time"
 
 	"github.com/ry461ch/metric-collector/internal/app/server/config"
-	"github.com/ry461ch/metric-collector/pkg/logging"
 	"github.com/ry461ch/metric-collector/internal/fileworker"
+	"github.com/ry461ch/metric-collector/pkg/logging"
 )
 
 type (
@@ -15,19 +15,19 @@ type (
 	}
 
 	SnapshotMaker struct {
-		config   *config.Config
-		timeState *TimeState
-		fileWorker  *fileworker.FileWorker
-		isBreak		bool
+		config     *config.Config
+		timeState  *TimeState
+		fileWorker *fileworker.FileWorker
+		isBreak    bool
 	}
 )
 
 func New(timeState *TimeState, config *config.Config, fileWorker *fileworker.FileWorker) *SnapshotMaker {
 	return &SnapshotMaker{
-		timeState: timeState,
-		config: config,
+		timeState:  timeState,
+		config:     config,
 		fileWorker: fileWorker,
-		isBreak: false,
+		isBreak:    false,
 	}
 }
 
@@ -37,8 +37,8 @@ func (sm *SnapshotMaker) runIteration(ctx context.Context) {
 	defaultTime := time.Time{}
 	if sm.timeState.LastSnapshotTime == defaultTime ||
 		time.Duration(time.Duration(sm.config.StoreInterval)*time.Second) <= time.Since(sm.timeState.LastSnapshotTime) {
-			sm.fileWorker.ImportToFile(iterCtx)
-			sm.timeState.LastSnapshotTime = time.Now()
+		sm.fileWorker.ImportToFile(iterCtx)
+		sm.timeState.LastSnapshotTime = time.Now()
 		logging.Logger.Info("Successfully saved all metrics")
 	}
 }

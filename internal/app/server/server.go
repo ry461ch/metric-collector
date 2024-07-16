@@ -57,9 +57,9 @@ func Run() {
 	if cfg.StoreInterval != int64(0) {
 		var wg sync.WaitGroup
 		wg.Add(3)
-		
+
 		// run server
-		server := &http.Server{Addr: cfg.Addr.Host+":"+strconv.FormatInt(cfg.Addr.Port, 10), Handler: router}
+		server := &http.Server{Addr: cfg.Addr.Host + ":" + strconv.FormatInt(cfg.Addr.Port, 10), Handler: router}
 		go func() {
 			server.ListenAndServe()
 			wg.Done()

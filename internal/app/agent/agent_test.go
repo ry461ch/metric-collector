@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -9,14 +10,13 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"context"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/ry461ch/metric-collector/internal/app/agent/config"
-	"github.com/ry461ch/metric-collector/internal/models/netaddr"
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
+	"github.com/ry461ch/metric-collector/internal/models/netaddr"
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
 )
 
@@ -76,7 +76,7 @@ func TestCollectMetric(t *testing.T) {
 	agent.collectMetric(context.TODO())
 
 	searchMetric := metrics.Metric{
-		ID: "PollCount",
+		ID:    "PollCount",
 		MType: "counter",
 	}
 	metricStorage.GetMetric(context.TODO(), &searchMetric)
@@ -98,27 +98,27 @@ func TestSendMetric(t *testing.T) {
 	testThirdGaugeValue := float64(7.0)
 	metricList := []metrics.Metric{
 		{
-			ID: "test_1",
+			ID:    "test_1",
 			MType: "counter",
 			Delta: &testFirstCounterValue,
 		},
 		{
-			ID: "test_2",
+			ID:    "test_2",
 			MType: "counter",
 			Delta: &testSecondCounterValue,
 		},
 		{
-			ID: "test_3",
+			ID:    "test_3",
 			MType: "gauge",
 			Value: &testFirstGaugeValue,
 		},
 		{
-			ID: "test_4",
+			ID:    "test_4",
 			MType: "gauge",
 			Value: &testSecondGaugeValue,
 		},
 		{
-			ID: "test_5",
+			ID:    "test_5",
 			MType: "gauge",
 			Value: &testThirdGaugeValue,
 		},
@@ -148,7 +148,7 @@ func TestRun(t *testing.T) {
 	agent.runIteration(context.TODO())
 
 	searchMetric := metrics.Metric{
-		ID: "PollCount",
+		ID:    "PollCount",
 		MType: "counter",
 	}
 	agentStorage.GetMetric(context.TODO(), &searchMetric)

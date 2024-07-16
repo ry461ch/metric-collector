@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgerrcode"
 
 	"github.com/ry461ch/metric-collector/internal/app/server/config"
 	"github.com/ry461ch/metric-collector/internal/fileworker"
@@ -19,18 +20,19 @@ import (
 )
 
 type Handlers struct {
-	config  *config.Config
+	config        *config.Config
 	metricStorage storage.Storage
-	fileWorker  *fileworker.FileWorker
+	fileWorker    *fileworker.FileWorker
 }
 
 func New(config *config.Config, metricStorage storage.Storage, fileWorker *fileworker.FileWorker) *Handlers {
 	return &Handlers{
 		metricStorage: metricStorage,
-		config: config,
-		fileWorker: fileWorker,
+		config:        config,
+		fileWorker:    fileWorker,
 	}
 }
+
 
 func (h *Handlers) PostPlainGaugeHandler(res http.ResponseWriter, req *http.Request) {
 	metricName := chi.URLParam(req, "name")
@@ -44,11 +46,19 @@ func (h *Handlers) PostPlainGaugeHandler(res http.ResponseWriter, req *http.Requ
 		MType: "gauge",
 		Value: &metricVal,
 	}
-	
-	DBCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
-    defer cancel()
-	err = h.metricStorage.SaveMetrics(DBCtx, []metrics.Metric{metric})
-	if err != nil {
+
+	for i := 1; i <= 7; i+=2 {
+		DBCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
+		defer cancel()
+		err = h.metricStorage.SaveMetrics(DBCtx, []metrics.Metric{metric})
+		if err == nil {
+			break
+		}
+		if pgerrcode.IsConnectionException(err.Error()) && i != 7 {
+			cancel()
+			time.Sleep(time.Second * time.Duration(i))
+			continue
+		}
 		if err.Error() == "INVALID_METRIC" {
 			res.WriteHeader(http.StatusBadRequest)
 			return
@@ -59,7 +69,7 @@ func (h *Handlers) PostPlainGaugeHandler(res http.ResponseWriter, req *http.Requ
 
 	if h.config.StoreInterval == int64(0) {
 		fileCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
-    	defer cancel()
+		defer cancel()
 		h.fileWorker.ImportToFile(fileCtx)
 	}
 	res.WriteHeader(http.StatusOK)
@@ -77,11 +87,19 @@ func (h *Handlers) PostPlainCounterHandler(res http.ResponseWriter, req *http.Re
 		MType: "counter",
 		Delta: &metricVal,
 	}
-	
-	DBCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
-    defer cancel()
-	err = h.metricStorage.SaveMetrics(DBCtx, []metrics.Metric{metric})
-	if err != nil {
+
+	for i := 1; i <= 7; i+=2 {
+		DBCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
+		defer cancel()
+		err = h.metricStorage.SaveMetrics(DBCtx, []metrics.Metric{metric})
+		if err == nil {
+			break
+		}
+		if pgerrcode.IsConnectionException(err.Error()) && i != 7 {
+			cancel()
+			time.Sleep(time.Second * time.Duration(i))
+			continue
+		}
 		if err.Error() == "INVALID_METRIC" {
 			res.WriteHeader(http.StatusBadRequest)
 			return
@@ -92,7 +110,7 @@ func (h *Handlers) PostPlainCounterHandler(res http.ResponseWriter, req *http.Re
 
 	if h.config.StoreInterval == int64(0) {
 		fileCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
-    	defer cancel()
+		defer cancel()
 		h.fileWorker.ImportToFile(fileCtx)
 	}
 	res.WriteHeader(http.StatusOK)
@@ -101,14 +119,22 @@ func (h *Handlers) PostPlainCounterHandler(res http.ResponseWriter, req *http.Re
 func (h *Handlers) GetPlainCounterHandler(res http.ResponseWriter, req *http.Request) {
 	metricName := chi.URLParam(req, "name")
 	metric := metrics.Metric{
-		ID: metricName,
+		ID:    metricName,
 		MType: "counter",
 	}
 
-	DBCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
-    defer cancel()
-	err := h.metricStorage.GetMetric(DBCtx, &metric)
-	if err != nil {
+	for i := 1; i <= 7; i+=2 {
+		DBCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
+		defer cancel()
+		err := h.metricStorage.GetMetric(DBCtx, &metric)
+		if err == nil {
+			break
+		}
+		if pgerrcode.IsConnectionException(err.Error()) && i != 7 {
+			cancel()
+			time.Sleep(time.Second * time.Duration(i))
+			continue
+		}
 		if err.Error() == "NOT_FOUND" {
 			res.WriteHeader(http.StatusNotFound)
 			return
@@ -120,21 +146,29 @@ func (h *Handlers) GetPlainCounterHandler(res http.ResponseWriter, req *http.Req
 		res.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
 	io.WriteString(res, strconv.FormatInt(*metric.Delta, 10))
 }
 
 func (h *Handlers) GetPlainGaugeHandler(res http.ResponseWriter, req *http.Request) {
 	metricName := chi.URLParam(req, "name")
 	metric := metrics.Metric{
-		ID: metricName,
+		ID:    metricName,
 		MType: "gauge",
 	}
 
-	DBCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
-    defer cancel()
-	err := h.metricStorage.GetMetric(DBCtx, &metric)
-
-	if err != nil {
+	for i := 1; i <= 7; i+=2 {
+		DBCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
+		defer cancel()
+		err := h.metricStorage.GetMetric(DBCtx, &metric)
+		if err == nil {
+			break
+		}
+		if pgerrcode.IsConnectionException(err.Error()) && i != 7 {
+			cancel()
+			time.Sleep(time.Second * time.Duration(i))
+			continue
+		}
 		if err.Error() == "NOT_FOUND" {
 			res.WriteHeader(http.StatusNotFound)
 			return
@@ -146,26 +180,39 @@ func (h *Handlers) GetPlainGaugeHandler(res http.ResponseWriter, req *http.Reque
 		res.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
 	io.WriteString(res, strconv.FormatFloat(*metric.Value, 'f', -1, 64))
 }
 
 func (h *Handlers) GetPlainAllMetricsHandler(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-	DBCtx, cancel := context.WithTimeout(req.Context(), 4*time.Second)
-    defer cancel()
-	metricList, err := h.metricStorage.ExtractMetrics(DBCtx)
-	if err != nil {
-		res.WriteHeader(http.StatusInternalServerError)
-		return
+	metricList := []metrics.Metric{}
+	for i := 1; i <= 7; i+=2 {
+		DBCtx, cancel := context.WithTimeout(req.Context(), 4*time.Second)
+		defer cancel()
+		metricExtracted, err := h.metricStorage.ExtractMetrics(DBCtx)
+		if err == nil {
+			metricList = metricExtracted
+			break
+		}
+		if pgerrcode.IsConnectionException(err.Error()) && i != 7 {
+			cancel()
+			time.Sleep(time.Second * time.Duration(i))
+			continue
+		}
+		if err != nil {
+			res.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
 
 	for _, metric := range metricList {
 		switch metric.MType {
 		case "counter":
-			io.WriteString(res, metric.ID + " : " + strconv.FormatInt(*metric.Delta, 10) + "\n")
+			io.WriteString(res, metric.ID+" : "+strconv.FormatInt(*metric.Delta, 10)+"\n")
 		case "gauge":
-			io.WriteString(res, metric.ID + " : " + strconv.FormatFloat(*metric.Value, 'f', -1, 64) + "\n")
+			io.WriteString(res, metric.ID+" : "+strconv.FormatFloat(*metric.Value, 'f', -1, 64)+"\n")
 		default:
 			res.WriteHeader(http.StatusInternalServerError)
 			return
@@ -191,10 +238,18 @@ func (h *Handlers) PostJSONHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	DBCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
-    defer cancel()
-	err = h.metricStorage.SaveMetrics(DBCtx, []metrics.Metric{metric})
-	if err != nil {
+	for i := 1; i <= 7; i+=2 {
+		DBCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
+		defer cancel()
+		err = h.metricStorage.SaveMetrics(DBCtx, []metrics.Metric{metric})
+		if err == nil {
+			break
+		}
+		if pgerrcode.IsConnectionException(err.Error()) && i != 7 {
+			cancel()
+			time.Sleep(time.Second * time.Duration(i))
+			continue
+		}
 		if err.Error() == "INVALID_METRIC" {
 			resp, _ := json.Marshal(response.ResponseErrorObject{Detail: "Bad request format"})
 			res.WriteHeader(http.StatusBadRequest)
@@ -209,7 +264,7 @@ func (h *Handlers) PostJSONHandler(res http.ResponseWriter, req *http.Request) {
 
 	if h.config.StoreInterval == int64(0) {
 		fileCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
-    	defer cancel()
+		defer cancel()
 		err = h.fileWorker.ImportToFile(fileCtx)
 		if err != nil {
 			resp, _ := json.Marshal(response.ResponseErrorObject{Detail: "Internal server error"})
@@ -242,10 +297,18 @@ func (h *Handlers) GetJSONHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	DBCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
-    defer cancel()
-	err = h.metricStorage.GetMetric(DBCtx, &metric)
-	if err != nil {
+	for i := 1; i <= 7; i+=2 {
+		DBCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
+		defer cancel()
+		err = h.metricStorage.GetMetric(DBCtx, &metric)
+		if err == nil {
+			break
+		}
+		if pgerrcode.IsConnectionException(err.Error()) && i != 7 {
+			cancel()
+			time.Sleep(time.Second * time.Duration(i))
+			continue
+		}
 		if err.Error() == "NOT_FOUND" {
 			resp, _ := json.Marshal(response.ResponseErrorObject{Detail: "Metric not found"})
 			res.WriteHeader(http.StatusNotFound)
@@ -276,11 +339,11 @@ func (h *Handlers) GetJSONHandler(res http.ResponseWriter, req *http.Request) {
 
 func (h *Handlers) Ping(res http.ResponseWriter, req *http.Request) {
 	ctx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
-    defer cancel()
-    if h.metricStorage == nil || !h.metricStorage.Ping(ctx) {
+	defer cancel()
+	if h.metricStorage == nil || !h.metricStorage.Ping(ctx) {
 		res.WriteHeader(http.StatusInternalServerError)
 		return
-    }
+	}
 	res.WriteHeader(http.StatusOK)
 }
 
@@ -311,10 +374,18 @@ func (h *Handlers) PostMetricsHandler(res http.ResponseWriter, req *http.Request
 		return
 	}
 
-	DBCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
-    defer cancel()
-	err = h.metricStorage.SaveMetrics(DBCtx, metricList)
-	if err != nil {
+	for i := 1; i <= 7; i+=2 {
+		DBCtx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
+		defer cancel()
+		err = h.metricStorage.SaveMetrics(DBCtx, metricList)
+		if err == nil {
+			break
+		}
+		if pgerrcode.IsConnectionException(err.Error()) && i != 7 {
+			cancel()
+			time.Sleep(time.Second * time.Duration(i))
+			continue
+		}
 		if err.Error() == "INVALID_METRIC" {
 			resp, _ := json.Marshal(response.ResponseErrorObject{Detail: "Bad request format"})
 			res.WriteHeader(http.StatusBadRequest)

@@ -1,16 +1,16 @@
 package snapshotmaker
 
 import (
+	"context"
 	"testing"
 	"time"
-	"context"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/ry461ch/metric-collector/internal/app/server/config"
 	"github.com/ry461ch/metric-collector/internal/fileworker"
-	"github.com/ry461ch/metric-collector/internal/storage/memory"
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
+	"github.com/ry461ch/metric-collector/internal/storage/memory"
 	"github.com/ry461ch/metric-collector/pkg/logging"
 )
 
@@ -21,12 +21,12 @@ func TestBase(t *testing.T) {
 	mGaugeValue := float64(12.0)
 	metricList := []metrics.Metric{
 		{
-			ID: "test",
+			ID:    "test",
 			MType: "counter",
 			Delta: &mCounterValue,
 		},
 		{
-			ID: "test",
+			ID:    "test",
 			MType: "gauge",
 			Value: &mGaugeValue,
 		},
@@ -52,11 +52,11 @@ func TestBase(t *testing.T) {
 	fileWriteWorker.ExportFromFile(context.TODO())
 
 	mSearchGauge := metrics.Metric{
-		ID: "test",
+		ID:    "test",
 		MType: "gauge",
 	}
 	mSearchCounter := metrics.Metric{
-		ID: "test",
+		ID:    "test",
 		MType: "counter",
 	}
 	mWriteStorage.GetMetric(context.TODO(), &mSearchCounter)

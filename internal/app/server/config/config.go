@@ -10,25 +10,24 @@ import (
 )
 
 type Config struct {
-	DBDsn			string				`env:"DATABASE_DSN"`
-	Addr	        netaddr.NetAddress  `env:"ADDRESS"`
-	LogLevel	    string 				`env:"LOG_LEVEL"`
-	StoreInterval   int64 				`env:"STORE_INTERVAL"`
-	FileStoragePath string 				`env:"FILE_STORAGE_PATH"`
-	Restore         bool 				`env:"RESTORE"`
+	DBDsn           string             `env:"DATABASE_DSN"`
+	Addr            netaddr.NetAddress `env:"ADDRESS"`
+	LogLevel        string             `env:"LOG_LEVEL"`
+	StoreInterval   int64              `env:"STORE_INTERVAL"`
+	FileStoragePath string             `env:"FILE_STORAGE_PATH"`
+	Restore         bool               `env:"RESTORE"`
 }
 
 func NewConfig() *Config {
 	addr := netaddr.NetAddress{Host: "localhost", Port: 8080}
 	return &Config{
-		LogLevel: "INFO",
-		StoreInterval: 300,
+		LogLevel:        "INFO",
+		StoreInterval:   300,
 		FileStoragePath: "/tmp/metrics-db.json",
-		Restore: true,
-		Addr: addr,
+		Restore:         true,
+		Addr:            addr,
 	}
 }
-
 
 func ParseArgs(cfg *Config) {
 	flag.Var(&cfg.Addr, "a", "Net address host:port")

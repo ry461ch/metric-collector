@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -9,7 +10,6 @@ import (
 	"runtime"
 	"strconv"
 	"time"
-	"context"
 
 	"gopkg.in/resty.v1"
 
@@ -25,16 +25,16 @@ type (
 	}
 
 	Agent struct {
-		timeState *TimeState
-		config   *config.Config
-		memStorage  *memstorage.MemStorage
+		timeState  *TimeState
+		config     *config.Config
+		memStorage *memstorage.MemStorage
 	}
 )
 
 func New(timeState *TimeState, config *config.Config, memStorage *memstorage.MemStorage) *Agent {
 	return &Agent{
-		timeState: timeState,
-		config: config,
+		timeState:  timeState,
+		config:     config,
 		memStorage: memStorage,
 	}
 }
@@ -107,15 +107,20 @@ func (a *Agent) sendMetrics(ctx context.Context) error {
 		return nil
 	}
 	req, _ := json.Marshal(metricList)
-	
-	resp, err := client.R().
-		SetHeader("Content-Type", "application/json").
-		SetBody(req).
-		Post(serverURL + "/updates/")
-	if err != nil {
-		return fmt.Errorf("server broken or timeouted: %s", err.Error())
-	}
-	if resp.StatusCode() != http.StatusOK {
+
+
+	for i := 1; i < 7; i+=2 {
+		resp, err := client.R().
+			SetHeader("Content-Type", "application/json").
+			SetBody(req).
+			Post(serverURL + "/updates/")
+		if err != nil || resp.StatusCode() == http.StatusInternalServerError {
+			continue
+		}
+		if resp.StatusCode() == http.StatusOK {
+			log.Println("Successfully send all metrics")
+			return nil
+		}
 		return fmt.Errorf("invalid request, server returned: %d", resp.StatusCode())
 	}
 

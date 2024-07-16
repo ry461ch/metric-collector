@@ -1,8 +1,8 @@
 package memstorage
 
 import (
-	"testing"
 	"context"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 
@@ -15,7 +15,7 @@ func TestGauge(t *testing.T) {
 	mValue := 10.0
 	metricList := []metrics.Metric{
 		{
-			ID: "test",
+			ID:    "test",
 			MType: "gauge",
 			Value: &mValue,
 		},
@@ -24,7 +24,7 @@ func TestGauge(t *testing.T) {
 	mNewValue := 12.0
 	metricList = []metrics.Metric{
 		{
-			ID: "test",
+			ID:    "test",
 			MType: "gauge",
 			Value: &mNewValue,
 		},
@@ -32,14 +32,14 @@ func TestGauge(t *testing.T) {
 	storage.SaveMetrics(context.TODO(), metricList)
 
 	searchMetric := metrics.Metric{
-		ID: "test",
+		ID:    "test",
 		MType: "gauge",
 	}
 	storage.GetMetric(context.TODO(), &searchMetric)
 	assert.Equal(t, float64(12.0), *searchMetric.Value, "неверно обновляется gauge метрика")
-	
+
 	notExistsMetric := metrics.Metric{
-		ID: "unknown",
+		ID:    "unknown",
 		MType: "gauge",
 	}
 	err := storage.GetMetric(context.TODO(), &notExistsMetric)
@@ -53,7 +53,7 @@ func TestCounter(t *testing.T) {
 	mValue := int64(10)
 	metricList := []metrics.Metric{
 		{
-			ID: "test",
+			ID:    "test",
 			MType: "counter",
 			Delta: &mValue,
 		},
@@ -62,7 +62,7 @@ func TestCounter(t *testing.T) {
 	mNewValue := int64(12)
 	metricList = []metrics.Metric{
 		{
-			ID: "test",
+			ID:    "test",
 			MType: "counter",
 			Delta: &mNewValue,
 		},
@@ -70,14 +70,14 @@ func TestCounter(t *testing.T) {
 	storage.SaveMetrics(context.TODO(), metricList)
 
 	searchMetric := metrics.Metric{
-		ID: "test",
+		ID:    "test",
 		MType: "counter",
 	}
 	storage.GetMetric(context.TODO(), &searchMetric)
 	assert.Equal(t, int64(22), *searchMetric.Delta, "неверно обновляется counter метрика")
-	
+
 	notExistsMetric := metrics.Metric{
-		ID: "unknown",
+		ID:    "unknown",
 		MType: "counter",
 	}
 	err := storage.GetMetric(context.TODO(), &notExistsMetric)
@@ -92,12 +92,12 @@ func TestExtractAll(t *testing.T) {
 	mGaugeValue := float64(12.0)
 	metricList := []metrics.Metric{
 		{
-			ID: "test",
+			ID:    "test",
 			MType: "counter",
 			Delta: &mCounterValue,
 		},
 		{
-			ID: "test",
+			ID:    "test",
 			MType: "gauge",
 			Value: &mGaugeValue,
 		},

@@ -12,7 +12,7 @@ import (
 )
 
 type FileWorker struct {
-	filePath string
+	filePath      string
 	metricStorage storage.Storage
 }
 
