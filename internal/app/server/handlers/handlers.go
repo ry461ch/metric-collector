@@ -16,15 +16,22 @@ import (
 	config "github.com/ry461ch/metric-collector/internal/config/server"
 	"github.com/ry461ch/metric-collector/internal/fileworker"
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
-	"github.com/ry461ch/metric-collector/internal/models/response"
 	"github.com/ry461ch/metric-collector/internal/storage"
 )
 
-type Handlers struct {
-	config        *config.Config
-	metricStorage storage.Storage
-	fileWorker    *fileworker.FileWorker
-}
+type (
+	Handlers struct {
+		config        *config.Config
+		metricStorage storage.Storage
+		fileWorker    *fileworker.FileWorker
+	}
+
+	ResponseEmptyObject struct{}
+
+	ResponseErrorObject struct {
+		Detail string `json:"detail,omitempty"`
+	}
+)
 
 func New(config *config.Config, metricStorage storage.Storage, fileWorker *fileworker.FileWorker) *Handlers {
 	return &Handlers{
@@ -234,7 +241,7 @@ func (h *Handlers) PostJSONHandler(res http.ResponseWriter, req *http.Request) {
 	var buf bytes.Buffer
 	_, err := buf.ReadFrom(req.Body)
 	if err != nil {
-		resp, _ := json.Marshal(response.ResponseErrorObject{Detail: "Can't read input"})
+		resp, _ := json.Marshal(ResponseErrorObject{Detail: "Can't read input"})
 		res.WriteHeader(http.StatusBadRequest)
 		res.Write(resp)
 		return
@@ -242,7 +249,7 @@ func (h *Handlers) PostJSONHandler(res http.ResponseWriter, req *http.Request) {
 
 	metric := metrics.Metric{}
 	if err = json.Unmarshal(buf.Bytes(), &metric); err != nil {
-		resp, _ := json.Marshal(response.ResponseErrorObject{Detail: "Bad request format"})
+		resp, _ := json.Marshal(ResponseErrorObject{Detail: "Bad request format"})
 		res.WriteHeader(http.StatusBadRequest)
 		res.Write(resp)
 		return
@@ -251,12 +258,12 @@ func (h *Handlers) PostJSONHandler(res http.ResponseWriter, req *http.Request) {
 	err = h.saveMetrics(req.Context(), []metrics.Metric{metric})
 	if err != nil {
 		if err.Error() == "INVALID_METRIC" {
-			resp, _ := json.Marshal(response.ResponseErrorObject{Detail: "Bad request format"})
+			resp, _ := json.Marshal(ResponseErrorObject{Detail: "Bad request format"})
 			res.WriteHeader(http.StatusBadRequest)
 			res.Write(resp)
 			return
 		}
-		resp, _ := json.Marshal(response.ResponseErrorObject{Detail: "Internal Server Error"})
+		resp, _ := json.Marshal(ResponseErrorObject{Detail: "Internal Server Error"})
 		res.WriteHeader(http.StatusInternalServerError)
 		res.Write(resp)
 		return
@@ -268,7 +275,7 @@ func (h *Handlers) PostJSONHandler(res http.ResponseWriter, req *http.Request) {
 		h.fileWorker.ImportToFile(fileCtx)
 	}
 
-	resp, _ := json.Marshal(response.ResponseEmptyObject{})
+	resp, _ := json.Marshal(ResponseEmptyObject{})
 	res.WriteHeader(http.StatusOK)
 	res.Write(resp)
 }
@@ -277,7 +284,7 @@ func (h *Handlers) GetJSONHandler(res http.ResponseWriter, req *http.Request) {
 	var buf bytes.Buffer
 	_, err := buf.ReadFrom(req.Body)
 	if err != nil {
-		resp, _ := json.Marshal(response.ResponseErrorObject{Detail: "Can't read input"})
+		resp, _ := json.Marshal(ResponseErrorObject{Detail: "Can't read input"})
 		res.WriteHeader(http.StatusBadRequest)
 		res.Write(resp)
 		return
@@ -285,7 +292,7 @@ func (h *Handlers) GetJSONHandler(res http.ResponseWriter, req *http.Request) {
 
 	metric := metrics.Metric{}
 	if err = json.Unmarshal(buf.Bytes(), &metric); err != nil {
-		resp, _ := json.Marshal(response.ResponseErrorObject{Detail: "Bad request format"})
+		resp, _ := json.Marshal(ResponseErrorObject{Detail: "Bad request format"})
 		res.WriteHeader(http.StatusBadRequest)
 		res.Write(resp)
 		return
@@ -294,17 +301,17 @@ func (h *Handlers) GetJSONHandler(res http.ResponseWriter, req *http.Request) {
 	err = h.getMetric(req.Context(), &metric)
 	if err != nil {
 		if err.Error() == "NOT_FOUND" {
-			resp, _ := json.Marshal(response.ResponseErrorObject{Detail: "Metric not found"})
+			resp, _ := json.Marshal(ResponseErrorObject{Detail: "Metric not found"})
 			res.WriteHeader(http.StatusNotFound)
 			res.Write(resp)
 			return
 		}
 		if err.Error() == "INVALID_METRIC_TYPE" {
-			resp, _ := json.Marshal(response.ResponseErrorObject{Detail: "Bad metric type"})
+			resp, _ := json.Marshal(ResponseErrorObject{Detail: "Bad metric type"})
 			res.WriteHeader(http.StatusBadRequest)
 			res.Write(resp)
 		}
-		resp, _ := json.Marshal(response.ResponseErrorObject{Detail: "Internal Server Error"})
+		resp, _ := json.Marshal(ResponseErrorObject{Detail: "Internal Server Error"})
 		res.WriteHeader(http.StatusInternalServerError)
 		res.Write(resp)
 		return
@@ -312,7 +319,7 @@ func (h *Handlers) GetJSONHandler(res http.ResponseWriter, req *http.Request) {
 
 	resp, err := json.Marshal(metric)
 	if err != nil {
-		resp, _ := json.Marshal(response.ResponseErrorObject{Detail: "Internal Server Error"})
+		resp, _ := json.Marshal(ResponseErrorObject{Detail: "Internal Server Error"})
 		res.WriteHeader(http.StatusInternalServerError)
 		res.Write(resp)
 		return
@@ -335,7 +342,7 @@ func (h *Handlers) PostMetricsHandler(res http.ResponseWriter, req *http.Request
 	var buf bytes.Buffer
 	_, err := buf.ReadFrom(req.Body)
 	if err != nil {
-		resp, _ := json.Marshal(response.ResponseErrorObject{Detail: "Can't read input"})
+		resp, _ := json.Marshal(ResponseErrorObject{Detail: "Can't read input"})
 		res.WriteHeader(http.StatusBadRequest)
 		res.Write(resp)
 		return
@@ -344,7 +351,7 @@ func (h *Handlers) PostMetricsHandler(res http.ResponseWriter, req *http.Request
 	metricList := []metrics.Metric{}
 	data := buf.Bytes()
 	if len(data) == 0 {
-		resp, _ := json.Marshal(response.ResponseErrorObject{Detail: "Empty input"})
+		resp, _ := json.Marshal(ResponseErrorObject{Detail: "Empty input"})
 		res.WriteHeader(http.StatusBadRequest)
 		res.Write(resp)
 		return
@@ -352,7 +359,7 @@ func (h *Handlers) PostMetricsHandler(res http.ResponseWriter, req *http.Request
 
 	err = json.Unmarshal(data, &metricList)
 	if err != nil {
-		resp, _ := json.Marshal(response.ResponseErrorObject{Detail: "Can't read input"})
+		resp, _ := json.Marshal(ResponseErrorObject{Detail: "Can't read input"})
 		res.WriteHeader(http.StatusBadRequest)
 		res.Write(resp)
 		return
@@ -361,18 +368,18 @@ func (h *Handlers) PostMetricsHandler(res http.ResponseWriter, req *http.Request
 	err = h.saveMetrics(req.Context(), metricList)
 	if err != nil {
 		if err.Error() == "INVALID_METRIC" {
-			resp, _ := json.Marshal(response.ResponseErrorObject{Detail: "Bad request format"})
+			resp, _ := json.Marshal(ResponseErrorObject{Detail: "Bad request format"})
 			res.WriteHeader(http.StatusBadRequest)
 			res.Write(resp)
 			return
 		}
-		resp, _ := json.Marshal(response.ResponseErrorObject{Detail: "Internal Server Error"})
+		resp, _ := json.Marshal(ResponseErrorObject{Detail: "Internal Server Error"})
 		res.WriteHeader(http.StatusInternalServerError)
 		res.Write(resp)
 		return
 	}
 
-	resp, _ := json.Marshal(response.ResponseEmptyObject{})
+	resp, _ := json.Marshal(ResponseEmptyObject{})
 	res.WriteHeader(http.StatusOK)
 	res.Write(resp)
 }
