@@ -151,6 +151,7 @@ func (a *Agent) collectAndSendMetrics(ctx context.Context) {
 
 func (a *Agent) Run() {
 	ctx := context.Background()
+	a.memStorage.Initialize(ctx)
 	for {
 		iterCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
 		a.collectAndSendMetrics(iterCtx)
