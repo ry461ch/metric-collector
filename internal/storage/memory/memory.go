@@ -12,15 +12,15 @@ type MemStorage struct {
 	gauge   map[string]float64
 }
 
-func NewMemStorage(ctx context.Context) *MemStorage {
-	return &MemStorage{counter: map[string]int64{}, gauge: map[string]float64{}}
+func NewMemStorage() *MemStorage {
+	return &MemStorage{counter: nil, gauge: nil}
 }
 
-func (ms *MemStorage) Ping(ctx context.Context) bool {
-	return true
+func (ms *MemStorage) Initialize(ctx context.Context) error {
+	ms.counter = map[string]int64{}
+	ms.gauge = map[string]float64{}
+	return nil
 }
-
-func (ms *MemStorage) Close() {}
 
 func (ms *MemStorage) SaveMetrics(ctx context.Context, metricList []metrics.Metric) error {
 	// prepare arrays

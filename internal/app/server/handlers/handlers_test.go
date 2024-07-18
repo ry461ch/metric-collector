@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/resty.v1"
 
-	"github.com/ry461ch/metric-collector/internal/app/server/config"
+	config "github.com/ry461ch/metric-collector/internal/config/server"
 	"github.com/ry461ch/metric-collector/internal/fileworker"
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
@@ -31,7 +31,8 @@ func mockRouter(handlers *Handlers) chi.Router {
 }
 
 func TestPostTextGaugeHandler(t *testing.T) {
-	memStorage := memstorage.NewMemStorage(context.TODO())
+	memStorage := memstorage.NewMemStorage()
+	memStorage.Initialize(context.TODO())
 
 	fileWorker := fileworker.New("", memStorage)
 	handlers := New(&config.Config{StoreInterval: 1}, memStorage, fileWorker)
@@ -56,7 +57,8 @@ func TestPostTextGaugeHandler(t *testing.T) {
 }
 
 func TestPostTextCounterHandler(t *testing.T) {
-	memStorage := memstorage.NewMemStorage(context.TODO())
+	memStorage := memstorage.NewMemStorage()
+	memStorage.Initialize(context.TODO())
 
 	fileWorker := fileworker.New("", memStorage)
 	handlers := New(&config.Config{StoreInterval: 1}, memStorage, fileWorker)
@@ -81,7 +83,8 @@ func TestPostTextCounterHandler(t *testing.T) {
 }
 
 func TestGetTextGaugeHandler(t *testing.T) {
-	memStorage := memstorage.NewMemStorage(context.TODO())
+	memStorage := memstorage.NewMemStorage()
+	memStorage.Initialize(context.TODO())
 	mValue := float64(10.5)
 	metric := metrics.Metric{
 		ID:    "some_metric",
@@ -110,7 +113,8 @@ func TestGetTextGaugeHandler(t *testing.T) {
 }
 
 func TestGetTextCounterHandler(t *testing.T) {
-	memStorage := memstorage.NewMemStorage(context.TODO())
+	memStorage := memstorage.NewMemStorage()
+	memStorage.Initialize(context.TODO())
 	mValue := int64(10)
 	metric := metrics.Metric{
 		ID:    "some_metric",
@@ -139,7 +143,8 @@ func TestGetTextCounterHandler(t *testing.T) {
 }
 
 func TestGetAllMetricsHandler(t *testing.T) {
-	memStorage := memstorage.NewMemStorage(context.TODO())
+	memStorage := memstorage.NewMemStorage()
+	memStorage.Initialize(context.TODO())
 
 	testFirstCounterValue := int64(1)
 	testSecondCounterValue := int64(2)
@@ -190,7 +195,8 @@ func TestGetAllMetricsHandler(t *testing.T) {
 }
 
 func TestPostJSONHandler(t *testing.T) {
-	memStorage := memstorage.NewMemStorage(context.TODO())
+	memStorage := memstorage.NewMemStorage()
+	memStorage.Initialize(context.TODO())
 
 	fileWorker := fileworker.New("", memStorage)
 	handlers := New(&config.Config{StoreInterval: 1}, memStorage, fileWorker)
@@ -309,7 +315,8 @@ func TestPostJSONHandler(t *testing.T) {
 }
 
 func TestJsonGaugeStorageHandler(t *testing.T) {
-	memStorage := memstorage.NewMemStorage(context.TODO())
+	memStorage := memstorage.NewMemStorage()
+	memStorage.Initialize(context.TODO())
 
 	fileWorker := fileworker.New("", memStorage)
 	handlers := New(&config.Config{StoreInterval: 1}, memStorage, fileWorker)
@@ -349,7 +356,8 @@ func TestJsonGaugeStorageHandler(t *testing.T) {
 }
 
 func TestPostMultipleHandler(t *testing.T) {
-	memStorage := memstorage.NewMemStorage(context.TODO())
+	memStorage := memstorage.NewMemStorage()
+	memStorage.Initialize(context.TODO())
 
 	fileWorker := fileworker.New("", memStorage)
 	handlers := New(&config.Config{StoreInterval: 1}, memStorage, fileWorker)

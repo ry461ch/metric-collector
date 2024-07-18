@@ -14,7 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/ry461ch/metric-collector/internal/app/agent/config"
+	config "github.com/ry461ch/metric-collector/internal/config/agent"
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 	"github.com/ry461ch/metric-collector/internal/models/netaddr"
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
@@ -65,8 +65,13 @@ func splitURL(URL string) *netaddr.NetAddress {
 }
 
 func TestCollectMetric(t *testing.T) {
-	metricStorage := memstorage.NewMemStorage(context.TODO())
-	agent := New(&TimeState{}, &config.Config{}, metricStorage)
+	metricStorage := memstorage.NewMemStorage()
+	metricStorage.Initialize(context.TODO())
+	agent := Agent{
+		timeState: &TimeState{},
+		config: &config.Config{},
+		memStorage: metricStorage,
+	}
 	agent.collectMetric(context.TODO())
 
 	storedMetrics, _ := metricStorage.ExtractMetrics(context.TODO())
@@ -89,7 +94,8 @@ func TestSendMetric(t *testing.T) {
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
-	agentStorage := memstorage.NewMemStorage(context.TODO())
+	agentStorage := memstorage.NewMemStorage()
+	agentStorage.Initialize(context.TODO())
 
 	testFirstCounterValue := int64(10)
 	testSecondCounterValue := int64(7)
@@ -125,7 +131,11 @@ func TestSendMetric(t *testing.T) {
 	}
 	agentStorage.SaveMetrics(context.TODO(), metricList)
 
-	agent := New(&TimeState{}, &config.Config{Addr: *splitURL(srv.URL)}, agentStorage)
+	agent := Agent{
+		timeState: &TimeState{},
+		config: &config.Config{Addr: *splitURL(srv.URL)},
+		memStorage: agentStorage,
+	}
 
 	agent.sendMetrics(context.TODO())
 	assert.Equal(t, int64(1), serverStorage.timesCalled, "Не прошел запрос на сервер")
@@ -139,13 +149,18 @@ func TestRun(t *testing.T) {
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
-	agentStorage := memstorage.NewMemStorage(context.TODO())
+	agentStorage := memstorage.NewMemStorage()
+	agentStorage.Initialize(context.TODO())
 	config := config.Config{ReportIntervalSec: 6, PollIntervalSec: 3, Addr: *splitURL(srv.URL)}
 	timeState := TimeState{LastCollectMetricTime: time.Now(), LastSendMetricTime: time.Now()}
 
-	agent := New(&timeState, &config, agentStorage)
+	agent := Agent{
+		timeState: &timeState,
+		config: &config,
+		memStorage: agentStorage,
+	}
 
-	agent.runIteration(context.TODO())
+	agent.collectAndSendMetrics(context.TODO())
 
 	searchMetric := metrics.Metric{
 		ID:    "PollCount",
@@ -155,12 +170,12 @@ func TestRun(t *testing.T) {
 	assert.Nil(t, searchMetric.Delta, "Вызвался collect metric, хотя еще не должен был")
 
 	timeState.LastCollectMetricTime = time.Now().Add(-time.Second * 4)
-	agent.runIteration(context.TODO())
+	agent.collectAndSendMetrics(context.TODO())
 	agentStorage.GetMetric(context.TODO(), &searchMetric)
 	assert.Equal(t, int64(1), *searchMetric.Delta, "Кол-во вызовов collectMetric не совпадает с ожидаемым")
 
 	timeState.LastSendMetricTime = time.Now().Add(-time.Second * 7)
-	agent.runIteration(context.TODO())
+	agent.collectAndSendMetrics(context.TODO())
 	assert.Less(t, int64(0), serverStorage.timesCalled, "Не прошел запрос на сервер")
 	agentStorage.GetMetric(context.TODO(), &searchMetric)
 	assert.Equal(t, int64(1), *searchMetric.Delta, "Кол-во вызовов collectMetric не совпадает с ожидаемым")

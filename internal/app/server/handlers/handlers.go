@@ -12,7 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgerrcode"
 
-	"github.com/ry461ch/metric-collector/internal/app/server/config"
+	config "github.com/ry461ch/metric-collector/internal/config/server"
 	"github.com/ry461ch/metric-collector/internal/fileworker"
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 	"github.com/ry461ch/metric-collector/internal/models/response"
@@ -337,7 +337,7 @@ func (h *Handlers) GetJSONHandler(res http.ResponseWriter, req *http.Request) {
 func (h *Handlers) Ping(res http.ResponseWriter, req *http.Request) {
 	ctx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
 	defer cancel()
-	if h.metricStorage == nil || !h.metricStorage.Ping(ctx) {
+	if externalStorage, ok := h.metricStorage.(storage.ExternalStorage); ok && !externalStorage.Ping(ctx) {
 		res.WriteHeader(http.StatusInternalServerError)
 		return
 	}

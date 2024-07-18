@@ -11,6 +11,7 @@ import (
 )
 
 type PGStorage struct {
+	dsn	string
 	db *sql.DB
 }
 
@@ -40,11 +41,18 @@ func getDDL() string {
 	`
 }
 
-func NewPGStorage(ctx context.Context, DBDsn string) (*PGStorage, error) {
-	db, err := sql.Open("pgx", DBDsn)
+func NewPGStorage(DBDsn string) *PGStorage {
+	return &PGStorage{
+		dsn: DBDsn,
+		db: nil,
+	}
+}
+
+func (pg *PGStorage) Initialize(ctx context.Context) error {
+	db, err := sql.Open("pgx", pg.dsn)
 
 	if err != nil {
-		return &PGStorage{db: nil}, err
+		return err
 	}
 
 	requests := strings.Split(getDDL(), ";")
@@ -53,11 +61,13 @@ func NewPGStorage(ctx context.Context, DBDsn string) (*PGStorage, error) {
 		if request != "" {
 			_, err := db.ExecContext(ctx, request)
 			if err != nil {
-				return &PGStorage{db: nil}, err
+				return err
 			}
 		}
 	}
-	return &PGStorage{db: db}, nil
+
+	pg.db = db
+	return nil
 }
 
 func (pg *PGStorage) Close() {

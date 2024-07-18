@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/ry461ch/metric-collector/internal/app/server/config"
+	config "github.com/ry461ch/metric-collector/internal/config/server"
 	"github.com/ry461ch/metric-collector/internal/fileworker"
 	"github.com/ry461ch/metric-collector/pkg/logging"
 )

@@ -11,7 +11,7 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
-	"github.com/ry461ch/metric-collector/internal/app/server/config"
+	config "github.com/ry461ch/metric-collector/internal/config/server"
 	"github.com/ry461ch/metric-collector/internal/app/server/crontasks/snapshotmaker"
 	"github.com/ry461ch/metric-collector/internal/app/server/handlers"
 	"github.com/ry461ch/metric-collector/internal/app/server/router"
@@ -22,71 +22,90 @@ import (
 	"github.com/ry461ch/metric-collector/pkg/logging"
 )
 
-func getStorage(cfg *config.Config) (storage.Storage, error) {
+type Server struct {
+	cfg	*config.Config
+	metricStorage storage.Storage
+	fileWorker *fileworker.FileWorker
+	snapshotMaker *snapshotmaker.SnapshotMaker
+	server *http.Server
+}
+
+func getStorage(cfg *config.Config) storage.Storage {
 	if cfg.DBDsn != "" {
-		return pgstorage.NewPGStorage(context.Background(), cfg.DBDsn)
+		return pgstorage.NewPGStorage(cfg.DBDsn)
 	} else {
-		return memstorage.NewMemStorage(context.Background()), nil
+		return memstorage.NewMemStorage()
 	}
 }
 
-func Run() {
-	// parse args and env
-	cfg := config.NewConfig()
-	config.ParseArgs(cfg)
-	config.ParseEnv(cfg)
-
-	// set logger
+func NewServer(cfg *config.Config) *Server {
 	logging.Initialize(cfg.LogLevel)
 
 	// initialize storage
-	mStorage, err := getStorage(cfg)
-	if err == nil {
-		defer mStorage.Close()
-	}
+	metricStorage := getStorage(cfg)
 
-	fileWorker := fileworker.New(cfg.FileStoragePath, mStorage)
+	fileWorker := fileworker.New(cfg.FileStoragePath, metricStorage)
 	if cfg.Restore && cfg.DBDsn == "" {
 		fileWorker.ExportFromFile(context.Background())
 	}
 
-	handleService := handlers.New(cfg, mStorage, fileWorker)
-	router := router.New(handleService)
-
-	logging.Logger.Info("Server is running: ", cfg.Addr.String())
-	if cfg.StoreInterval != int64(0) {
-		var wg sync.WaitGroup
-		wg.Add(3)
-
-		// run server
-		server := &http.Server{Addr: cfg.Addr.Host + ":" + strconv.FormatInt(cfg.Addr.Port, 10), Handler: router}
-		go func() {
-			server.ListenAndServe()
-			wg.Done()
-		}()
-
-		// run crontasks
-		snapshotMaker := snapshotmaker.New(&snapshotmaker.TimeState{}, cfg, fileWorker)
-		go func() {
-			snapshotMaker.Run(context.Background())
-			wg.Done()
-		}()
-
-		// wait for signal
-		go func() {
-			stop := make(chan os.Signal, 1)
-			signal.Notify(stop, os.Interrupt)
-			<-stop
-			fileCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-			defer cancel()
-			fileWorker.ImportToFile(fileCtx)
-			server.Shutdown(context.Background())
-			snapshotMaker.Break()
-			wg.Done()
-		}()
-
-		wg.Wait()
-	} else {
-		http.ListenAndServe(cfg.Addr.Host+":"+strconv.FormatInt(cfg.Addr.Port, 10), router)
+	handleService := handlers.New(cfg, metricStorage, fileWorker)
+	handler := router.New(handleService)
+	snapshotMaker := snapshotmaker.New(&snapshotmaker.TimeState{}, cfg, fileWorker)
+	server := &http.Server{Addr: cfg.Addr.Host + ":" + strconv.FormatInt(cfg.Addr.Port, 10), Handler: handler}
+	
+	return &Server{
+		cfg: cfg,
+		metricStorage: metricStorage,
+		fileWorker: fileWorker,
+		snapshotMaker: snapshotMaker,
+		server: server,
 	}
+}
+
+
+func (s *Server) Run() {
+	err := s.metricStorage.Initialize(context.Background())
+	if err != nil {
+		logging.Logger.Warnln("Db wasn't initialized")
+	} else if externalStorage, ok := s.metricStorage.(storage.ExternalStorage); ok {
+		defer externalStorage.Close()
+	}
+
+	if s.cfg.Restore && s.cfg.DBDsn == "" {
+		s.fileWorker.ExportFromFile(context.Background())
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(3)
+
+	// run server
+	go func() {
+		logging.Logger.Info("Server is running: ", s.cfg.Addr.String())
+		s.server.ListenAndServe()
+		wg.Done()
+	}()
+
+	// run crontasks
+	go func() {
+		if s.cfg.StoreInterval != int64(0) {
+			s.snapshotMaker.Run(context.Background())
+		}
+		wg.Done()
+	}()
+
+	// wait for interrupting signal
+	go func() {
+		stop := make(chan os.Signal, 1)
+		signal.Notify(stop, os.Interrupt)
+		<-stop
+		fileCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		s.fileWorker.ImportToFile(fileCtx)
+		s.server.Shutdown(context.Background())
+		s.snapshotMaker.Break()
+		wg.Done()
+	}()
+
+	wg.Wait()
 }

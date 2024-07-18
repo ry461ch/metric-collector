@@ -1,4 +1,4 @@
-package config
+package agentconfig
 
 import (
 	"flag"
@@ -17,17 +17,20 @@ type Config struct {
 
 func NewConfig() *Config {
 	addr := netaddr.NetAddress{Host: "localhost", Port: 8080}
-	return &Config{ReportIntervalSec: 10, PollIntervalSec: 2, Addr: addr}
+	cfg := &Config{ReportIntervalSec: 10, PollIntervalSec: 2, Addr: addr}
+	parseArgs(cfg)
+	parseEnv(cfg)
+	return cfg
 }
 
-func ParseArgs(cfg *Config) {
+func parseArgs(cfg *Config) {
 	flag.Var(&cfg.Addr, "a", "Net address host:port")
 	flag.Int64Var(&cfg.ReportIntervalSec, "r", 10, "Interval of sending metrics to the server")
 	flag.Int64Var(&cfg.PollIntervalSec, "p", 2, "Interval of polling metrics from runtime")
 	flag.Parse()
 }
 
-func ParseEnv(cfg *Config) {
+func parseEnv(cfg *Config) {
 	err := env.Parse(cfg)
 	if err != nil {
 		log.Fatalf("Can't parse env variables: %s", err)

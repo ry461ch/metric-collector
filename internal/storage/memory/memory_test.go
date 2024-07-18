@@ -10,7 +10,8 @@ import (
 )
 
 func TestGauge(t *testing.T) {
-	storage := NewMemStorage(context.TODO())
+	storage := NewMemStorage()
+	storage.Initialize(context.TODO())
 
 	mValue := 10.0
 	metricList := []metrics.Metric{
@@ -48,7 +49,8 @@ func TestGauge(t *testing.T) {
 }
 
 func TestCounter(t *testing.T) {
-	storage := NewMemStorage(context.TODO())
+	storage := NewMemStorage()
+	storage.Initialize(context.TODO())
 
 	mValue := int64(10)
 	metricList := []metrics.Metric{
@@ -86,7 +88,8 @@ func TestCounter(t *testing.T) {
 }
 
 func TestExtractAll(t *testing.T) {
-	storage := NewMemStorage(context.TODO())
+	storage := NewMemStorage()
+	storage.Initialize(context.TODO())
 
 	mCounterValue := int64(10)
 	mGaugeValue := float64(12.0)

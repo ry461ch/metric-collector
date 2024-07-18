@@ -13,7 +13,7 @@ import (
 
 	"gopkg.in/resty.v1"
 
-	"github.com/ry461ch/metric-collector/internal/app/agent/config"
+	config "github.com/ry461ch/metric-collector/internal/config/agent"
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
 )
@@ -31,11 +31,11 @@ type (
 	}
 )
 
-func New(timeState *TimeState, config *config.Config, memStorage *memstorage.MemStorage) *Agent {
+func NewAgent(config *config.Config) *Agent {
 	return &Agent{
-		timeState:  timeState,
+		timeState:  &TimeState{},
 		config:     config,
-		memStorage: memStorage,
+		memStorage: memstorage.NewMemStorage(),
 	}
 }
 
@@ -106,7 +106,10 @@ func (a *Agent) sendMetrics(ctx context.Context) error {
 	if len(metricList) == 0 {
 		return nil
 	}
-	req, _ := json.Marshal(metricList)
+	req, err := json.Marshal(metricList)
+	if err != nil {
+		return fmt.Errorf("can't convert model Metric to json")
+	}
 
 	for i := 1; i < 7; i += 2 {
 		resp, err := client.R().
@@ -120,6 +123,7 @@ func (a *Agent) sendMetrics(ctx context.Context) error {
 			log.Println("Successfully send all metrics")
 			return nil
 		}
+		log.Println("Server is not available")
 		return fmt.Errorf("invalid request, server returned: %d", resp.StatusCode())
 	}
 
@@ -127,34 +131,30 @@ func (a *Agent) sendMetrics(ctx context.Context) error {
 	return nil
 }
 
-func (a *Agent) runIteration(ctx context.Context) {
-	iterCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
-	defer cancel()
+func (a *Agent) collectAndSendMetrics(ctx context.Context) {
 	defaultTime := time.Time{}
 	if a.timeState.LastCollectMetricTime == defaultTime ||
 		time.Duration(time.Duration(a.config.PollIntervalSec)*time.Second) <= time.Since(a.timeState.LastCollectMetricTime) {
-		a.collectMetric(iterCtx)
+		a.collectMetric(ctx)
 		a.timeState.LastCollectMetricTime = time.Now()
 	}
 
 	if a.timeState.LastSendMetricTime == defaultTime ||
 		time.Duration(time.Duration(a.config.ReportIntervalSec)*time.Second) <= time.Since(a.timeState.LastSendMetricTime) {
-		a.sendMetrics(iterCtx)
+		err := a.sendMetrics(ctx)
+		if err != nil {
+			return
+		}
 		a.timeState.LastSendMetricTime = time.Now()
 	}
 }
 
-func Run() {
-	cfg := config.NewConfig()
-	config.ParseArgs(cfg)
-	config.ParseEnv(cfg)
-	log.Println(cfg.Addr.String())
+func (a *Agent) Run() {
 	ctx := context.Background()
-
-	memStorage := memstorage.NewMemStorage(ctx)
-	mAgent := New(&TimeState{}, cfg, memStorage)
 	for {
-		mAgent.runIteration(ctx)
+		iterCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
+		a.collectAndSendMetrics(iterCtx)
+		cancel()
 		time.Sleep(time.Second)
 	}
 }

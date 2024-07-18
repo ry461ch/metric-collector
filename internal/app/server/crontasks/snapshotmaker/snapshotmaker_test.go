@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/ry461ch/metric-collector/internal/app/server/config"
+	config "github.com/ry461ch/metric-collector/internal/config/server"
 	"github.com/ry461ch/metric-collector/internal/fileworker"
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
@@ -16,7 +16,8 @@ import (
 
 func TestBase(t *testing.T) {
 	logging.Initialize("DEBUG")
-	mReadStorage := memstorage.NewMemStorage(context.TODO())
+	mReadStorage := memstorage.NewMemStorage()
+	mReadStorage.Initialize(context.TODO())
 	mCounterValue := int64(10)
 	mGaugeValue := float64(12.0)
 	metricList := []metrics.Metric{
@@ -47,7 +48,8 @@ func TestBase(t *testing.T) {
 	snapshotMaker.runIteration(context.TODO())
 	assert.NotEqual(t, currentTime, snapshotMaker.timeState.LastSnapshotTime, "Не сработал if, хотя должен был")
 
-	mWriteStorage := memstorage.NewMemStorage(context.TODO())
+	mWriteStorage := memstorage.NewMemStorage()
+	mWriteStorage.Initialize(context.TODO())
 	fileWriteWorker := fileworker.New(filepath, mWriteStorage)
 	fileWriteWorker.ExportFromFile(context.TODO())
 

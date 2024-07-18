@@ -1,4 +1,4 @@
-package config
+package serverconfig
 
 import (
 	"flag"
@@ -20,16 +20,19 @@ type Config struct {
 
 func NewConfig() *Config {
 	addr := netaddr.NetAddress{Host: "localhost", Port: 8080}
-	return &Config{
+	cfg := &Config{
 		LogLevel:        "INFO",
 		StoreInterval:   300,
 		FileStoragePath: "/tmp/metrics-db.json",
 		Restore:         true,
 		Addr:            addr,
 	}
+	parseArgs(cfg)
+	parseEnv(cfg)
+	return cfg
 }
 
-func ParseArgs(cfg *Config) {
+func parseArgs(cfg *Config) {
 	flag.Var(&cfg.Addr, "a", "Net address host:port")
 	flag.StringVar(&cfg.LogLevel, "l", "INFO", "Log level")
 	flag.StringVar(&cfg.DBDsn, "d", "", "database connection string")
@@ -39,7 +42,7 @@ func ParseArgs(cfg *Config) {
 	flag.Parse()
 }
 
-func ParseEnv(cfg *Config) {
+func parseEnv(cfg *Config) {
 	err := env.Parse(cfg)
 	if err != nil {
 		log.Fatalf("Can't parse env variables: %s", err)
