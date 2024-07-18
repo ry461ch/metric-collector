@@ -68,8 +68,8 @@ func TestCollectMetric(t *testing.T) {
 	metricStorage := memstorage.NewMemStorage()
 	metricStorage.Initialize(context.TODO())
 	agent := Agent{
-		timeState: &TimeState{},
-		config: &config.Config{},
+		timeState:  &TimeState{},
+		config:     &config.Config{},
 		memStorage: metricStorage,
 	}
 	agent.collectMetric(context.TODO())
@@ -132,8 +132,8 @@ func TestSendMetric(t *testing.T) {
 	agentStorage.SaveMetrics(context.TODO(), metricList)
 
 	agent := Agent{
-		timeState: &TimeState{},
-		config: &config.Config{Addr: *splitURL(srv.URL)},
+		timeState:  &TimeState{},
+		config:     &config.Config{Addr: *splitURL(srv.URL)},
 		memStorage: agentStorage,
 	}
 
@@ -155,8 +155,8 @@ func TestRun(t *testing.T) {
 	timeState := TimeState{LastCollectMetricTime: time.Now(), LastSendMetricTime: time.Now()}
 
 	agent := Agent{
-		timeState: &timeState,
-		config: &config,
+		timeState:  &timeState,
+		config:     &config,
 		memStorage: agentStorage,
 	}
 

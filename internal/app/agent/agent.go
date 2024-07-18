@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"net/http"
 	"runtime"
 	"strconv"
 	"time"
@@ -111,20 +110,16 @@ func (a *Agent) sendMetrics(ctx context.Context) error {
 		return fmt.Errorf("can't convert model Metric to json")
 	}
 
-	for i := 1; i < 7; i += 2 {
-		resp, err := client.R().
-			SetHeader("Content-Type", "application/json").
-			SetBody(req).
-			Post(serverURL + "/updates/")
-		if err != nil || resp.StatusCode() == http.StatusInternalServerError {
-			continue
-		}
-		if resp.StatusCode() == http.StatusOK {
-			log.Println("Successfully send all metrics")
-			return nil
-		}
+	restyRequest := client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(req)
+	err = resty.Backoff(func() (*resty.Response, error) {
+		return restyRequest.Post(serverURL + "/updates/")
+	}, resty.Retries(4), resty.WaitTime(1), resty.MaxWaitTime(5))
+
+	if err != nil {
 		log.Println("Server is not available")
-		return fmt.Errorf("invalid request, server returned: %d", resp.StatusCode())
+		return fmt.Errorf("server is not available")
 	}
 
 	log.Println("Successfully send all metrics")
