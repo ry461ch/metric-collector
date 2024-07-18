@@ -43,12 +43,7 @@ func NewServer(cfg *config.Config) *Server {
 
 	// initialize storage
 	metricStorage := getStorage(cfg)
-
 	fileWorker := fileworker.New(cfg.FileStoragePath, metricStorage)
-	if cfg.Restore && cfg.DBDsn == "" {
-		fileWorker.ExportFromFile(context.Background())
-	}
-
 	handleService := handlers.New(cfg, metricStorage, fileWorker)
 	handler := router.New(handleService)
 	snapshotMaker := snapshotmaker.New(&snapshotmaker.TimeState{}, cfg, fileWorker)
