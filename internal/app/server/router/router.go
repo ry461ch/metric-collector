@@ -5,17 +5,21 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/ry461ch/metric-collector/pkg/middlewares/compressor"
 	"github.com/ry461ch/metric-collector/pkg/logging/middleware"
+	"github.com/ry461ch/metric-collector/pkg/middlewares/compressor"
 	"github.com/ry461ch/metric-collector/pkg/middlewares/contenttypes"
 )
 
 func New(mHandlers metricHandlers) chi.Router {
-	router := chi.NewRouter()
-	router.Use(requestlogger.WithLogging, compressor.GzipHandle)
+	r := chi.NewRouter()
+	r.Use(requestlogger.WithLogging, compressor.GzipHandle)
 
-	router.Route("/update", func(r chi.Router) {
-		r.Route("/counter", func(r chi.Router) {
+	r.Route("/updates/", func(r chi.Router) {
+		r.Use(contenttypes.ValidateJSONContentType)
+		r.Post("/", mHandlers.PostMetricsHandler)
+	})
+	r.Route("/update/", func(r chi.Router) {
+		r.Route("/counter/", func(r chi.Router) {
 			r.Use(contenttypes.ValidatePlainContentType)
 			r.Route("/{name:[a-zA-Z0-9-_]+}", func(r chi.Router) {
 				r.Post("/{value:[0-9]+}", mHandlers.PostPlainCounterHandler)
@@ -27,7 +31,7 @@ func New(mHandlers metricHandlers) chi.Router {
 				res.WriteHeader(http.StatusNotFound)
 			})
 		})
-		r.Route("/gauge", func(r chi.Router) {
+		r.Route("/gauge/", func(r chi.Router) {
 			r.Use(contenttypes.ValidatePlainContentType)
 			r.Route("/{name:[a-zA-Z0-9-_]+}", func(r chi.Router) {
 				r.Post("/{value:[0-9]+\\.?[0-9]*}", mHandlers.PostPlainGaugeHandler)
@@ -47,8 +51,8 @@ func New(mHandlers metricHandlers) chi.Router {
 			res.WriteHeader(http.StatusBadRequest)
 		})
 	})
-	router.Route("/value", func(r chi.Router) {
-		r.Route("/counter", func(r chi.Router) {
+	r.Route("/value/", func(r chi.Router) {
+		r.Route("/counter/", func(r chi.Router) {
 			r.Use(contenttypes.ValidatePlainContentType)
 
 			r.Get("/{name:[a-zA-Z0-9-_]+}", mHandlers.GetPlainCounterHandler)
@@ -56,7 +60,7 @@ func New(mHandlers metricHandlers) chi.Router {
 				res.WriteHeader(http.StatusNotFound)
 			})
 		})
-		r.Route("/gauge", func(r chi.Router) {
+		r.Route("/gauge/", func(r chi.Router) {
 			r.Use(contenttypes.ValidatePlainContentType)
 
 			r.Get("/{name:[a-zA-Z0-9-_]+}", mHandlers.GetPlainGaugeHandler)
@@ -72,9 +76,10 @@ func New(mHandlers metricHandlers) chi.Router {
 			res.WriteHeader(http.StatusNotFound)
 		})
 	})
-	router.Route("/", func(r chi.Router) {
+	r.Get("/ping", mHandlers.Ping)
+	r.Route("/", func(r chi.Router) {
 		r.Use(contenttypes.ValidatePlainContentType)
-		router.Get("/", mHandlers.GetPlainAllMetricsHandler)
+		r.Get("/", mHandlers.GetPlainAllMetricsHandler)
 	})
-	return router
+	return r
 }

@@ -1,11 +1,20 @@
 package storage
 
-type Storage interface {
-	UpdateGaugeValue(key string, value float64)
-	GetGaugeValue(key string) (float64, bool)
-	UpdateCounterValue(key string, value int64)
-	GetCounterValue(key string) (int64, bool)
+import (
+	"context"
 
-	GetGaugeValues() map[string]float64
-	GetCounterValues() map[string]int64
+	"github.com/ry461ch/metric-collector/internal/models/metrics"
+)
+
+type Storage interface {
+	Initialize(ctx context.Context) error
+	ExtractMetrics(ctx context.Context) ([]metrics.Metric, error)
+	SaveMetrics(ctx context.Context, metricList []metrics.Metric) error
+	GetMetric(ctx context.Context, metric *metrics.Metric) error
+}
+
+type ExternalStorage interface {
+	Storage
+	Ping(ctx context.Context) bool
+	Close()
 }

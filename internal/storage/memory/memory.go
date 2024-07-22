@@ -1,54 +1,91 @@
 package memstorage
 
+import (
+	"context"
+	"errors"
+
+	"github.com/ry461ch/metric-collector/internal/models/metrics"
+)
+
 type MemStorage struct {
 	counter map[string]int64
 	gauge   map[string]float64
 }
 
-func NewMemStorage() MemStorage {
-	return MemStorage{}
+func NewMemStorage() *MemStorage {
+	return &MemStorage{counter: nil, gauge: nil}
 }
 
-func (ms *MemStorage) UpdateGaugeValue(key string, value float64) {
-	if ms.gauge == nil {
-		ms.gauge = map[string]float64{}
-	}
-	ms.gauge[key] = value
+func (ms *MemStorage) Initialize(ctx context.Context) error {
+	ms.counter = map[string]int64{}
+	ms.gauge = map[string]float64{}
+	return nil
 }
 
-func (ms *MemStorage) GetGaugeValue(key string) (float64, bool) {
-	if ms.gauge == nil {
-		return 0, false
+func (ms *MemStorage) SaveMetrics(ctx context.Context, metricList []metrics.Metric) error {
+	// prepare arrays
+	for _, metric := range metricList {
+		if metric.ID == "" {
+			return errors.New("INVALID_METRIC")
+		}
+		if metric.MType == "" {
+			return errors.New("INVALID_METRIC")
+		}
+
+		switch metric.MType {
+		case "gauge":
+			if metric.Value == nil {
+				return errors.New("INVALID_METRIC")
+			}
+			ms.gauge[metric.ID] = *metric.Value
+		case "counter":
+			if metric.Delta == nil {
+				return errors.New("INVALID_METRIC")
+			}
+			ms.counter[metric.ID] += *metric.Delta
+		default:
+			return errors.New("INVALID_METRIC")
+		}
 	}
-	val, ok := ms.gauge[key]
-	return val, ok
+
+	return nil
 }
 
-func (ms *MemStorage) UpdateCounterValue(key string, value int64) {
-	if ms.counter == nil {
-		ms.counter = map[string]int64{}
+func (ms *MemStorage) ExtractMetrics(ctx context.Context) ([]metrics.Metric, error) {
+	metricList := []metrics.Metric{}
+	for key, val := range ms.gauge {
+		metricList = append(metricList, metrics.Metric{
+			ID:    key,
+			MType: "gauge",
+			Value: &val,
+		})
 	}
-	ms.counter[key] += value
+	for key, val := range ms.counter {
+		metricList = append(metricList, metrics.Metric{
+			ID:    key,
+			MType: "counter",
+			Delta: &val,
+		})
+	}
+	return metricList, nil
 }
 
-func (ms *MemStorage) GetCounterValue(key string) (int64, bool) {
-	if ms.counter == nil {
-		return 0, false
+func (ms *MemStorage) GetMetric(ctx context.Context, metric *metrics.Metric) error {
+	switch metric.MType {
+	case "gauge":
+		val, ok := ms.gauge[metric.ID]
+		if !ok {
+			return errors.New("NOT_FOUND")
+		}
+		metric.Value = &val
+	case "counter":
+		val, ok := ms.counter[metric.ID]
+		if !ok {
+			return errors.New("NOT_FOUND")
+		}
+		metric.Delta = &val
+	default:
+		return errors.New("INVALID_METRIC_TYPE")
 	}
-	val, ok := ms.counter[key]
-	return val, ok
-}
-
-func (ms *MemStorage) GetGaugeValues() map[string]float64 {
-	if ms.gauge == nil {
-		return map[string]float64{}
-	}
-	return ms.gauge
-}
-
-func (ms *MemStorage) GetCounterValues() map[string]int64 {
-	if ms.counter == nil {
-		return map[string]int64{}
-	}
-	return ms.counter
+	return nil
 }

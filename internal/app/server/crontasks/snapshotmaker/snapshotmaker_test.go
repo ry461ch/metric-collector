@@ -1,19 +1,23 @@
-package fileworker
+package snapshotmaker
 
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
+	config "github.com/ry461ch/metric-collector/internal/config/server"
+	"github.com/ry461ch/metric-collector/internal/fileworker"
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
+	"github.com/ry461ch/metric-collector/pkg/logging"
 )
 
 func TestBase(t *testing.T) {
+	logging.Initialize("DEBUG")
 	mReadStorage := memstorage.NewMemStorage()
 	mReadStorage.Initialize(context.TODO())
-
 	mCounterValue := int64(10)
 	mGaugeValue := float64(12.0)
 	metricList := []metrics.Metric{
@@ -30,13 +34,23 @@ func TestBase(t *testing.T) {
 	}
 	mReadStorage.SaveMetrics(context.TODO(), metricList)
 
-	filePath := "/tmp/metric_file_helper.json"
-	fileReadWorker := New(filePath, mReadStorage)
-	fileReadWorker.ImportToFile(context.TODO())
+	currentTime := time.Now()
+	filepath := "/tmp/metrics-db.json"
+	config := config.Config{StoreInterval: 5, FileStoragePath: filepath}
+	timeState := TimeState{LastSnapshotTime: currentTime}
+	fileWorker := fileworker.New(filepath, mReadStorage)
+	snapshotMaker := New(&timeState, &config, fileWorker)
+
+	snapshotMaker.runIteration(context.TODO())
+	assert.Equal(t, currentTime, snapshotMaker.timeState.LastSnapshotTime, "Сработал if, хотя еще не время")
+
+	timeState.LastSnapshotTime = time.Now().Add(-time.Second * 6)
+	snapshotMaker.runIteration(context.TODO())
+	assert.NotEqual(t, currentTime, snapshotMaker.timeState.LastSnapshotTime, "Не сработал if, хотя должен был")
 
 	mWriteStorage := memstorage.NewMemStorage()
 	mWriteStorage.Initialize(context.TODO())
-	fileWriteWorker := New(filePath, mWriteStorage)
+	fileWriteWorker := fileworker.New(filepath, mWriteStorage)
 	fileWriteWorker.ExportFromFile(context.TODO())
 
 	mSearchGauge := metrics.Metric{

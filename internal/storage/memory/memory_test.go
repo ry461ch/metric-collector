@@ -1,63 +1,113 @@
 package memstorage
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/ry461ch/metric-collector/internal/models/metrics"
 )
 
-func TestGaugeValues(t *testing.T) {
-	storage := MemStorage{}
+func TestGauge(t *testing.T) {
+	storage := NewMemStorage()
+	storage.Initialize(context.TODO())
 
-	storage.UpdateGaugeValue("test", 10.0)
-	storage.UpdateGaugeValue("test", 12.0)
-
-	val, _ := storage.GetGaugeValue("test")
-	assert.Equal(t, float64(12.0), val, "неверно обновляется gauge метрика")
-
-	storage.UpdateGaugeValue("test_2", 11.6)
-	storage.UpdateGaugeValue("test_3", 13.5)
-
-	_, ok := storage.GetGaugeValue("unknown")
-	assert.False(t, ok)
-
-	expectedGaugeValues := map[string]float64{
-		"test":   12.0,
-		"test_2": 11.6,
-		"test_3": 13.5,
+	mValue := 10.0
+	metricList := []metrics.Metric{
+		{
+			ID:    "test",
+			MType: "gauge",
+			Value: &mValue,
+		},
 	}
-
-	gaugeValues := storage.GetGaugeValues()
-	assert.Equal(t, 3, len(gaugeValues), "Кол-во метрик типа gauge не совпадает с ожидаемым")
-	for key, val := range storage.GetGaugeValues() {
-		assert.Equal(t, float64(expectedGaugeValues[key]), val, "Значение метрики типа gauge не совпадает с ожидаемым")
+	storage.SaveMetrics(context.TODO(), metricList)
+	mNewValue := 12.0
+	metricList = []metrics.Metric{
+		{
+			ID:    "test",
+			MType: "gauge",
+			Value: &mNewValue,
+		},
 	}
+	storage.SaveMetrics(context.TODO(), metricList)
+
+	searchMetric := metrics.Metric{
+		ID:    "test",
+		MType: "gauge",
+	}
+	storage.GetMetric(context.TODO(), &searchMetric)
+	assert.Equal(t, float64(12.0), *searchMetric.Value, "неверно обновляется gauge метрика")
+
+	notExistsMetric := metrics.Metric{
+		ID:    "unknown",
+		MType: "gauge",
+	}
+	err := storage.GetMetric(context.TODO(), &notExistsMetric)
+
+	assert.Error(t, err)
 }
 
-func TestCounterValues(t *testing.T) {
-	storage := MemStorage{}
+func TestCounter(t *testing.T) {
+	storage := NewMemStorage()
+	storage.Initialize(context.TODO())
 
-	storage.UpdateCounterValue("test", 10)
-	storage.UpdateCounterValue("test", 12)
-
-	val, _ := storage.GetCounterValue("test")
-	assert.Equal(t, int64(22), val, "неверно обновляется counter метрика")
-
-	storage.UpdateCounterValue("test_2", 11)
-	storage.UpdateCounterValue("test_3", 13)
-
-	_, ok := storage.GetCounterValue("unknown")
-	assert.False(t, ok)
-
-	expectedCounterValues := map[string]int64{
-		"test":   22,
-		"test_2": 11,
-		"test_3": 13,
+	mValue := int64(10)
+	metricList := []metrics.Metric{
+		{
+			ID:    "test",
+			MType: "counter",
+			Delta: &mValue,
+		},
 	}
-
-	counterValues := storage.GetCounterValues()
-	assert.Equal(t, 3, len(counterValues), "Кол-во метрик типа counter не совпадает с ожидаемым")
-	for key, val := range storage.GetCounterValues() {
-		assert.Equal(t, int64(expectedCounterValues[key]), val, "Значение метрики типа counter не совпадает с ожидаемым")
+	storage.SaveMetrics(context.TODO(), metricList)
+	mNewValue := int64(12)
+	metricList = []metrics.Metric{
+		{
+			ID:    "test",
+			MType: "counter",
+			Delta: &mNewValue,
+		},
 	}
+	storage.SaveMetrics(context.TODO(), metricList)
+
+	searchMetric := metrics.Metric{
+		ID:    "test",
+		MType: "counter",
+	}
+	storage.GetMetric(context.TODO(), &searchMetric)
+	assert.Equal(t, int64(22), *searchMetric.Delta, "неверно обновляется counter метрика")
+
+	notExistsMetric := metrics.Metric{
+		ID:    "unknown",
+		MType: "counter",
+	}
+	err := storage.GetMetric(context.TODO(), &notExistsMetric)
+
+	assert.Error(t, err)
+}
+
+func TestExtractAll(t *testing.T) {
+	storage := NewMemStorage()
+	storage.Initialize(context.TODO())
+
+	mCounterValue := int64(10)
+	mGaugeValue := float64(12.0)
+	metricList := []metrics.Metric{
+		{
+			ID:    "test",
+			MType: "counter",
+			Delta: &mCounterValue,
+		},
+		{
+			ID:    "test",
+			MType: "gauge",
+			Value: &mGaugeValue,
+		},
+	}
+	storage.SaveMetrics(context.TODO(), metricList)
+
+	resultMetrics, _ := storage.ExtractMetrics(context.TODO())
+
+	assert.Equal(t, 2, len(resultMetrics), "Кол-во метрик не совпадает с ожидаемым")
 }
