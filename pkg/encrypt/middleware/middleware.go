@@ -23,7 +23,7 @@ type ResponseEncrypter struct {
 func (re *ResponseEncrypter) Write(b []byte) (int, error) {
 	bodyHash := re.encrypter.EncryptMessage(b)
 	re.Header().Set("HashSHA256", string(bodyHash))
-	return re.Write(b)
+	return re.ResponseWriter.Write(b)
 }
 
 func CheckRequestAndEncryptResponse(encrypter *encrypt.Encrypter) func(http.Handler) http.Handler {
