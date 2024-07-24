@@ -16,6 +16,7 @@ type Config struct {
 	StoreInterval   int64              `env:"STORE_INTERVAL"`
 	FileStoragePath string             `env:"FILE_STORAGE_PATH"`
 	Restore         bool               `env:"RESTORE"`
+	SecretKey		string			   `env:"KEY"`
 }
 
 func NewConfig() *Config {
@@ -39,6 +40,7 @@ func parseArgs(cfg *Config) {
 	flag.Int64Var(&cfg.StoreInterval, "i", 300, "Store interval seconds")
 	flag.StringVar(&cfg.FileStoragePath, "f", "/tmp/metrics-db.json", "File storage path")
 	flag.BoolVar(&cfg.Restore, "r", true, "Load data from fileStoragePath when server is starting")
+	flag.StringVar(&cfg.SecretKey, "k", "", "Secret key")
 	flag.Parse()
 }
 

@@ -9,6 +9,7 @@ import (
 	"gopkg.in/resty.v1"
 
 	"github.com/ry461ch/metric-collector/pkg/logging"
+	"github.com/ry461ch/metric-collector/pkg/encrypt"
 )
 
 type MockHandlers struct {
@@ -287,7 +288,7 @@ func TestRouter(t *testing.T) {
 	client := resty.New()
 
 	handlers := NewMockHandlers()
-	router := New(&handlers)
+	router := New(&handlers, encrypt.New("test"))
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 

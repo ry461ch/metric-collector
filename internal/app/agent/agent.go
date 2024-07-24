@@ -15,6 +15,7 @@ import (
 	config "github.com/ry461ch/metric-collector/internal/config/agent"
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
+	"github.com/ry461ch/metric-collector/pkg/encrypt"
 )
 
 type (
@@ -27,6 +28,7 @@ type (
 		timeState  *TimeState
 		config     *config.Config
 		memStorage *memstorage.MemStorage
+		encrypter  *encrypt.Encrypter
 	}
 )
 
@@ -35,6 +37,7 @@ func NewAgent(config *config.Config) *Agent {
 		timeState:  &TimeState{},
 		config:     config,
 		memStorage: memstorage.NewMemStorage(),
+		encrypter:  encrypt.New(config.SecretKey),
 	}
 }
 
@@ -105,14 +108,17 @@ func (a *Agent) sendMetrics(ctx context.Context) error {
 	if len(metricList) == 0 {
 		return nil
 	}
-	req, err := json.Marshal(metricList)
+	reqBody, err := json.Marshal(metricList)
 	if err != nil {
 		return fmt.Errorf("can't convert model Metric to json")
 	}
 
+	reqBodyHash := a.encrypter.EncryptMessage(reqBody)
+
 	restyRequest := client.R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(req)
+		SetHeader("HashSHA256", string(reqBodyHash)).
+		SetBody(reqBody)
 	err = resty.Backoff(func() (*resty.Response, error) {
 		return restyRequest.Post(serverURL + "/updates/")
 	}, resty.Retries(4), resty.WaitTime(1), resty.MaxWaitTime(5))
