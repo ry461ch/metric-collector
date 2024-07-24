@@ -3,17 +3,10 @@ package encryptmiddleware
 import (
 	"net/http"
 	"bytes"
+	"fmt"
 
 	"github.com/ry461ch/metric-collector/pkg/encrypt"
 )
-
-type AccessChecker struct {
-	secretKey		string
-}
-
-func New(secretKey string) *AccessChecker {
-	return &AccessChecker{secretKey: secretKey}
-}
 
 type ResponseEncrypter struct {
 	http.ResponseWriter
@@ -22,7 +15,7 @@ type ResponseEncrypter struct {
 
 func (re *ResponseEncrypter) Write(b []byte) (int, error) {
 	bodyHash := re.encrypter.EncryptMessage(b)
-	re.Header().Set("HashSHA256", string(bodyHash))
+	re.Header().Set("HashSHA256", fmt.Sprintf("%x", bodyHash))
 	return re.ResponseWriter.Write(b)
 }
 
@@ -44,7 +37,7 @@ func CheckRequestAndEncryptResponse(encrypter *encrypt.Encrypter) func(http.Hand
 			reqBody := buf.Bytes()
 			reqHash := encrypter.EncryptMessage(reqBody)
 
-			if string(reqHash) != reqHeaderHash256 {
+			if fmt.Sprintf("%x", reqHash) != reqHeaderHash256 {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}

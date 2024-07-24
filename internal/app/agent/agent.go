@@ -114,10 +114,11 @@ func (a *Agent) sendMetrics(ctx context.Context) error {
 	}
 
 	reqBodyHash := a.encrypter.EncryptMessage(reqBody)
+	log.Printf("body hash: %x", reqBodyHash)
 
 	restyRequest := client.R().
 		SetHeader("Content-Type", "application/json").
-		SetHeader("HashSHA256", string(reqBodyHash)).
+		SetHeader("HashSHA256", fmt.Sprintf("%x", reqBodyHash)).
 		SetBody(reqBody)
 	err = resty.Backoff(func() (*resty.Response, error) {
 		return restyRequest.Post(serverURL + "/updates/")

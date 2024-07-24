@@ -18,6 +18,7 @@ import (
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 	"github.com/ry461ch/metric-collector/internal/models/netaddr"
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
+	"github.com/ry461ch/metric-collector/pkg/encrypt"
 )
 
 type MockServerStorage struct {
@@ -71,6 +72,7 @@ func TestCollectMetric(t *testing.T) {
 		timeState:  &TimeState{},
 		config:     &config.Config{},
 		memStorage: metricStorage,
+		encrypter: encrypt.New("test"),
 	}
 	agent.collectMetric(context.TODO())
 
@@ -135,6 +137,7 @@ func TestSendMetric(t *testing.T) {
 		timeState:  &TimeState{},
 		config:     &config.Config{Addr: *splitURL(srv.URL)},
 		memStorage: agentStorage,
+		encrypter: encrypt.New("test"),
 	}
 
 	agent.sendMetrics(context.TODO())
@@ -158,6 +161,7 @@ func TestRun(t *testing.T) {
 		timeState:  &timeState,
 		config:     &config,
 		memStorage: agentStorage,
+		encrypter: encrypt.New("test"),
 	}
 
 	agent.collectAndSendMetrics(context.TODO())
