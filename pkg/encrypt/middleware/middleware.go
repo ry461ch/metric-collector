@@ -1,9 +1,10 @@
 package encryptmiddleware
 
 import (
-	"net/http"
 	"bytes"
 	"fmt"
+	"io"
+	"net/http"
 
 	"github.com/ry461ch/metric-collector/pkg/encrypt"
 )
@@ -42,6 +43,7 @@ func CheckRequestAndEncryptResponse(encrypter *encrypt.Encrypter) func(http.Hand
 				return
 			}
 
+			r.Body = io.NopCloser(bytes.NewBuffer(reqBody))
 			next.ServeHTTP(&ResponseEncrypter{ResponseWriter: w, encrypter: encrypter}, r)
 		})
 	}
