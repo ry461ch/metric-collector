@@ -42,7 +42,7 @@ func CheckRequestAndEncryptResponse(encrypter *encrypt.Encrypter) func(http.Hand
 				return
 			}
 
-			next.ServeHTTP(&ResponseEncrypter{encrypter: encrypter}, r)
+			next.ServeHTTP(&ResponseEncrypter{ResponseWriter: w, encrypter: encrypter}, r)
 		})
 	}
 }
