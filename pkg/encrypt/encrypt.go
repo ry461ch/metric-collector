@@ -5,9 +5,8 @@ import (
 	"crypto/sha256"
 )
 
-
 type Encrypter struct {
-	secretKey	string
+	secretKey string
 }
 
 func New(secretKey string) *Encrypter {
@@ -16,6 +15,6 @@ func New(secretKey string) *Encrypter {
 
 func (e *Encrypter) EncryptMessage(message []byte) []byte {
 	h := hmac.New(sha256.New, []byte(e.secretKey))
-    h.Write(message)
-    return h.Sum(nil)
+	h.Write(message)
+	return h.Sum(nil)
 }

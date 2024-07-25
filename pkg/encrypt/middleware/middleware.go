@@ -21,7 +21,7 @@ func (re *ResponseEncrypter) Write(b []byte) (int, error) {
 }
 
 func CheckRequestAndEncryptResponse(encrypter *encrypt.Encrypter) func(http.Handler) http.Handler {
-	return func (next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			reqHeaderHash256 := r.Header.Get("HashSHA256")
 			if reqHeaderHash256 == "" {

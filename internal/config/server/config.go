@@ -19,7 +19,7 @@ type Config struct {
 	SecretKey		string			   `env:"KEY"`
 }
 
-func NewConfig() *Config {
+func New() *Config {
 	addr := netaddr.NetAddress{Host: "localhost", Port: 8080}
 	cfg := &Config{
 		LogLevel:        "INFO",

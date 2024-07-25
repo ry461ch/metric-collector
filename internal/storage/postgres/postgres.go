@@ -41,7 +41,7 @@ func getDDL() string {
 	`
 }
 
-func NewPGStorage(DBDsn string) *PGStorage {
+func New(DBDsn string) *PGStorage {
 	return &PGStorage{
 		dsn: DBDsn,
 		db: nil,

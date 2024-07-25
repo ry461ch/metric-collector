@@ -10,7 +10,7 @@ import (
 )
 
 func TestGauge(t *testing.T) {
-	storage := NewMemStorage()
+	storage := New()
 	storage.Initialize(context.TODO())
 
 	mValue := 10.0
@@ -49,7 +49,7 @@ func TestGauge(t *testing.T) {
 }
 
 func TestCounter(t *testing.T) {
-	storage := NewMemStorage()
+	storage := New()
 	storage.Initialize(context.TODO())
 
 	mValue := int64(10)
@@ -88,7 +88,7 @@ func TestCounter(t *testing.T) {
 }
 
 func TestExtractAll(t *testing.T) {
-	storage := NewMemStorage()
+	storage := New()
 	storage.Initialize(context.TODO())
 
 	mCounterValue := int64(10)

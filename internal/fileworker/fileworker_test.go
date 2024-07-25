@@ -11,7 +11,7 @@ import (
 )
 
 func TestBase(t *testing.T) {
-	mReadStorage := memstorage.NewMemStorage()
+	mReadStorage := memstorage.New()
 	mReadStorage.Initialize(context.TODO())
 
 	mCounterValue := int64(10)
@@ -34,7 +34,7 @@ func TestBase(t *testing.T) {
 	fileReadWorker := New(filePath, mReadStorage)
 	fileReadWorker.ImportToFile(context.TODO())
 
-	mWriteStorage := memstorage.NewMemStorage()
+	mWriteStorage := memstorage.New()
 	mWriteStorage.Initialize(context.TODO())
 	fileWriteWorker := New(filePath, mWriteStorage)
 	fileWriteWorker.ExportFromFile(context.TODO())

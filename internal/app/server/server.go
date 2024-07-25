@@ -24,22 +24,22 @@ import (
 )
 
 type Server struct {
-	cfg	*config.Config
+	cfg           *config.Config
 	metricStorage storage.Storage
-	fileWorker *fileworker.FileWorker
+	fileWorker    *fileworker.FileWorker
 	snapshotMaker *snapshotmaker.SnapshotMaker
-	server *http.Server
+	server        *http.Server
 }
 
 func getStorage(cfg *config.Config) storage.Storage {
 	if cfg.DBDsn != "" {
-		return pgstorage.NewPGStorage(cfg.DBDsn)
+		return pgstorage.New(cfg.DBDsn)
 	} else {
-		return memstorage.NewMemStorage()
+		return memstorage.New()
 	}
 }
 
-func NewServer(cfg *config.Config) *Server {
+func New(cfg *config.Config) *Server {
 	logging.Initialize(cfg.LogLevel)
 
 	// initialize storage
@@ -49,16 +49,15 @@ func NewServer(cfg *config.Config) *Server {
 	handler := router.New(handleService, encrypt.New(cfg.SecretKey))
 	snapshotMaker := snapshotmaker.New(&snapshotmaker.TimeState{}, cfg, fileWorker)
 	server := &http.Server{Addr: cfg.Addr.Host + ":" + strconv.FormatInt(cfg.Addr.Port, 10), Handler: handler}
-	
+
 	return &Server{
-		cfg: cfg,
+		cfg:           cfg,
 		metricStorage: metricStorage,
-		fileWorker: fileWorker,
+		fileWorker:    fileWorker,
 		snapshotMaker: snapshotMaker,
-		server: server,
+		server:        server,
 	}
 }
-
 
 func (s *Server) Run() {
 	err := s.metricStorage.Initialize(context.Background())
@@ -83,23 +82,24 @@ func (s *Server) Run() {
 	}()
 
 	// run crontasks
-	go func() {
+	snapshotMakerCtx, snapshotMakerCtxCancel := context.WithCancel(context.Background())
+	go func(ctx context.Context) {
 		if s.cfg.StoreInterval != int64(0) {
-			s.snapshotMaker.Run(context.Background())
+			s.snapshotMaker.Run(snapshotMakerCtx)
 		}
 		wg.Done()
-	}()
+	}(snapshotMakerCtx)
 
 	// wait for interrupting signal
 	go func() {
 		stop := make(chan os.Signal, 1)
 		signal.Notify(stop, os.Interrupt)
 		<-stop
-		fileCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-		defer cancel()
+		fileCtx, fileCtxCancel := context.WithTimeout(context.Background(), 1*time.Second)
 		s.fileWorker.ImportToFile(fileCtx)
+		fileCtxCancel()
 		s.server.Shutdown(context.Background())
-		s.snapshotMaker.Break()
+		snapshotMakerCtxCancel()
 		wg.Done()
 	}()
 
