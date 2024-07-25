@@ -151,6 +151,7 @@ func (c *Collector) Run(ctx context.Context, metricChannel chan<- metrics.Metric
 	for {
 		select {
 		case <-ctx.Done():
+			log.Println("collector done")
 			return
 		default:
 			if c.lastCollectMetricTime == defaultTime ||

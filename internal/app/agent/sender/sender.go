@@ -48,7 +48,6 @@ func (s *Sender) sendMetricsWorker(ctx context.Context, metricChannel <-chan met
 				}
 
 				reqBodyHash := s.encrypter.EncryptMessage(reqBody)
-				log.Printf("body hash: %x", reqBodyHash)
 
 				restyRequest := client.R().
 					SetHeader("Content-Type", "application/json").
@@ -92,6 +91,7 @@ func (s *Sender) Run(ctx context.Context, metricChannel <-chan metrics.Metric) {
 	for {
 		select {
 		case <-ctx.Done():
+			log.Println("sender done")
 			return
 		default:
 			if s.lastSendMetricTime == defaultTime ||
