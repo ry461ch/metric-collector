@@ -36,7 +36,8 @@ func New(cfg *config.Config) *Agent {
 }
 
 func (a *Agent) Run() {
-	ctx, cancel := context.WithCancel(context.Background())
+	collectorCtx, collectorCtxCancel := context.WithCancel(context.Background())
+	senderCtx, senderCtxCancel := context.WithCancel(context.Background())
 
 	metricChannel := make(chan metrics.Metric, 10000)
 
@@ -44,12 +45,12 @@ func (a *Agent) Run() {
 	wg.Add(3)
 
 	go func() {
-		a.metricCollector.Run(ctx, metricChannel)
+		a.metricCollector.Run(collectorCtx, metricChannel)
 		wg.Done()
 	}()
 
 	go func() {
-		a.metricSender.Run(ctx, metricChannel)
+		a.metricSender.Run(senderCtx, metricChannel)
 		wg.Done()
 	}()
 
@@ -57,7 +58,8 @@ func (a *Agent) Run() {
 		stop := make(chan os.Signal, 1)
 		signal.Notify(stop, os.Interrupt)
 		<-stop
-		cancel()
+		collectorCtxCancel()
+		senderCtxCancel()
 		close(metricChannel)
 		wg.Done()
 	}()

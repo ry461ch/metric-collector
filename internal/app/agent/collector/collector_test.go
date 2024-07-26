@@ -11,18 +11,18 @@ import (
 
 func TestCollectMetric(t *testing.T) {
 	metricChannel := make(chan metrics.Metric, 100)
+	defer close(metricChannel)
 
 	collectMetrics(context.TODO(), metricChannel)
 
 	collectedMetrics := 0
-loop:
 	for {
 		select {
 		case <-metricChannel:
 			collectedMetrics++
 		default:
 			assert.LessOrEqual(t, 32, collectedMetrics, "Несовпадает количество отслеживаемых метрик")
-			break loop
+			return
 		}
 	}
 }

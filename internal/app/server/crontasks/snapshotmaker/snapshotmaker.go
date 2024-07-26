@@ -51,7 +51,7 @@ func (sm *SnapshotMaker) Run(ctx context.Context) {
 			iterCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
 			sm.runIteration(iterCtx)
 			cancel()
-			time.Sleep(time.Second)
 		}
+		time.Sleep(time.Second)
 	}
 }

@@ -14,7 +14,11 @@ import (
 
 func New(mHandlers metricHandlers, encrypter *encrypt.Encrypter) chi.Router {
 	r := chi.NewRouter()
-	r.Use(requestlogger.WithLogging, compressor.GzipHandle, encryptmiddleware.CheckRequestAndEncryptResponse(encrypter))
+	r.Use(
+		requestlogger.WithLogging,
+		compressor.GzipHandle,
+		encryptmiddleware.CheckRequestAndEncryptResponse(encrypter),
+	)
 
 	r.Route("/updates/", func(r chi.Router) {
 		r.Use(contenttypes.ValidateJSONContentType)

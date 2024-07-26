@@ -83,12 +83,12 @@ func (s *Server) Run() {
 
 	// run crontasks
 	snapshotMakerCtx, snapshotMakerCtxCancel := context.WithCancel(context.Background())
-	go func(ctx context.Context) {
+	go func() {
 		if s.cfg.StoreInterval != int64(0) {
 			s.snapshotMaker.Run(snapshotMakerCtx)
 		}
 		wg.Done()
-	}(snapshotMakerCtx)
+	}()
 
 	// wait for interrupting signal
 	go func() {
