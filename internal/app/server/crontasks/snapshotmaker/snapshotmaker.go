@@ -18,7 +18,6 @@ type (
 		config     *config.Config
 		timeState  *TimeState
 		fileWorker *fileworker.FileWorker
-		isBreak    bool
 	}
 )
 
@@ -27,7 +26,6 @@ func New(timeState *TimeState, config *config.Config, fileWorker *fileworker.Fil
 		timeState:  timeState,
 		config:     config,
 		fileWorker: fileWorker,
-		isBreak:    false,
 	}
 }
 
