@@ -6,6 +6,6 @@ import (
 )
 
 func main() {
-	agent := agent.NewAgent(config.NewConfig())
+	agent := agent.New(config.New())
 	agent.Run()
 }

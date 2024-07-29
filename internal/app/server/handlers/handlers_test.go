@@ -31,7 +31,7 @@ func mockRouter(handlers *Handlers) chi.Router {
 }
 
 func TestPostTextGaugeHandler(t *testing.T) {
-	memStorage := memstorage.NewMemStorage()
+	memStorage := memstorage.New()
 	memStorage.Initialize(context.TODO())
 
 	fileWorker := fileworker.New("", memStorage)
@@ -57,7 +57,7 @@ func TestPostTextGaugeHandler(t *testing.T) {
 }
 
 func TestPostTextCounterHandler(t *testing.T) {
-	memStorage := memstorage.NewMemStorage()
+	memStorage := memstorage.New()
 	memStorage.Initialize(context.TODO())
 
 	fileWorker := fileworker.New("", memStorage)
@@ -83,7 +83,7 @@ func TestPostTextCounterHandler(t *testing.T) {
 }
 
 func TestGetTextGaugeHandler(t *testing.T) {
-	memStorage := memstorage.NewMemStorage()
+	memStorage := memstorage.New()
 	memStorage.Initialize(context.TODO())
 	mValue := float64(10.5)
 	metric := metrics.Metric{
@@ -113,7 +113,7 @@ func TestGetTextGaugeHandler(t *testing.T) {
 }
 
 func TestGetTextCounterHandler(t *testing.T) {
-	memStorage := memstorage.NewMemStorage()
+	memStorage := memstorage.New()
 	memStorage.Initialize(context.TODO())
 	mValue := int64(10)
 	metric := metrics.Metric{
@@ -143,7 +143,7 @@ func TestGetTextCounterHandler(t *testing.T) {
 }
 
 func TestGetAllMetricsHandler(t *testing.T) {
-	memStorage := memstorage.NewMemStorage()
+	memStorage := memstorage.New()
 	memStorage.Initialize(context.TODO())
 
 	testFirstCounterValue := int64(1)
@@ -195,7 +195,7 @@ func TestGetAllMetricsHandler(t *testing.T) {
 }
 
 func TestPostJSONHandler(t *testing.T) {
-	memStorage := memstorage.NewMemStorage()
+	memStorage := memstorage.New()
 	memStorage.Initialize(context.TODO())
 
 	fileWorker := fileworker.New("", memStorage)
@@ -315,7 +315,7 @@ func TestPostJSONHandler(t *testing.T) {
 }
 
 func TestJsonGaugeStorageHandler(t *testing.T) {
-	memStorage := memstorage.NewMemStorage()
+	memStorage := memstorage.New()
 	memStorage.Initialize(context.TODO())
 
 	fileWorker := fileworker.New("", memStorage)
@@ -356,7 +356,7 @@ func TestJsonGaugeStorageHandler(t *testing.T) {
 }
 
 func TestPostMultipleHandler(t *testing.T) {
-	memStorage := memstorage.NewMemStorage()
+	memStorage := memstorage.New()
 	memStorage.Initialize(context.TODO())
 
 	fileWorker := fileworker.New("", memStorage)

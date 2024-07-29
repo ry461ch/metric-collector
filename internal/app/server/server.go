@@ -11,53 +11,53 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
-	config "github.com/ry461ch/metric-collector/internal/config/server"
 	"github.com/ry461ch/metric-collector/internal/app/server/crontasks/snapshotmaker"
 	"github.com/ry461ch/metric-collector/internal/app/server/handlers"
 	"github.com/ry461ch/metric-collector/internal/app/server/router"
+	config "github.com/ry461ch/metric-collector/internal/config/server"
 	"github.com/ry461ch/metric-collector/internal/fileworker"
 	"github.com/ry461ch/metric-collector/internal/storage"
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
 	"github.com/ry461ch/metric-collector/internal/storage/postgres"
+	"github.com/ry461ch/metric-collector/pkg/encrypt"
 	"github.com/ry461ch/metric-collector/pkg/logging"
 )
 
 type Server struct {
-	cfg	*config.Config
+	cfg           *config.Config
 	metricStorage storage.Storage
-	fileWorker *fileworker.FileWorker
+	fileWorker    *fileworker.FileWorker
 	snapshotMaker *snapshotmaker.SnapshotMaker
-	server *http.Server
+	server        *http.Server
 }
 
 func getStorage(cfg *config.Config) storage.Storage {
 	if cfg.DBDsn != "" {
-		return pgstorage.NewPGStorage(cfg.DBDsn)
+		return pgstorage.New(cfg.DBDsn)
 	} else {
-		return memstorage.NewMemStorage()
+		return memstorage.New()
 	}
 }
 
-func NewServer(cfg *config.Config) *Server {
+func New(cfg *config.Config) *Server {
 	logging.Initialize(cfg.LogLevel)
 
 	// initialize storage
 	metricStorage := getStorage(cfg)
 	fileWorker := fileworker.New(cfg.FileStoragePath, metricStorage)
 	handleService := handlers.New(cfg, metricStorage, fileWorker)
-	handler := router.New(handleService)
+	handler := router.New(handleService, encrypt.New(cfg.SecretKey))
 	snapshotMaker := snapshotmaker.New(&snapshotmaker.TimeState{}, cfg, fileWorker)
 	server := &http.Server{Addr: cfg.Addr.Host + ":" + strconv.FormatInt(cfg.Addr.Port, 10), Handler: handler}
-	
+
 	return &Server{
-		cfg: cfg,
+		cfg:           cfg,
 		metricStorage: metricStorage,
-		fileWorker: fileWorker,
+		fileWorker:    fileWorker,
 		snapshotMaker: snapshotMaker,
-		server: server,
+		server:        server,
 	}
 }
-
 
 func (s *Server) Run() {
 	err := s.metricStorage.Initialize(context.Background())
@@ -82,9 +82,10 @@ func (s *Server) Run() {
 	}()
 
 	// run crontasks
+	snapshotMakerCtx, snapshotMakerCtxCancel := context.WithCancel(context.Background())
 	go func() {
 		if s.cfg.StoreInterval != int64(0) {
-			s.snapshotMaker.Run(context.Background())
+			s.snapshotMaker.Run(snapshotMakerCtx)
 		}
 		wg.Done()
 	}()
@@ -94,11 +95,11 @@ func (s *Server) Run() {
 		stop := make(chan os.Signal, 1)
 		signal.Notify(stop, os.Interrupt)
 		<-stop
-		fileCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-		defer cancel()
+		fileCtx, fileCtxCancel := context.WithTimeout(context.Background(), 1*time.Second)
 		s.fileWorker.ImportToFile(fileCtx)
+		fileCtxCancel()
 		s.server.Shutdown(context.Background())
-		s.snapshotMaker.Break()
+		snapshotMakerCtxCancel()
 		wg.Done()
 	}()
 

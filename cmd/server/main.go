@@ -6,6 +6,6 @@ import (
 )
 
 func main() {
-	server := server.NewServer(config.NewConfig())
+	server := server.New(config.New())
 	server.Run()
 }

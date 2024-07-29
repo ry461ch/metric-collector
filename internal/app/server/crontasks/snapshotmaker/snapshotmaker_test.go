@@ -16,7 +16,7 @@ import (
 
 func TestBase(t *testing.T) {
 	logging.Initialize("DEBUG")
-	mReadStorage := memstorage.NewMemStorage()
+	mReadStorage := memstorage.New()
 	mReadStorage.Initialize(context.TODO())
 	mCounterValue := int64(10)
 	mGaugeValue := float64(12.0)
@@ -48,7 +48,7 @@ func TestBase(t *testing.T) {
 	snapshotMaker.runIteration(context.TODO())
 	assert.NotEqual(t, currentTime, snapshotMaker.timeState.LastSnapshotTime, "Не сработал if, хотя должен был")
 
-	mWriteStorage := memstorage.NewMemStorage()
+	mWriteStorage := memstorage.New()
 	mWriteStorage.Initialize(context.TODO())
 	fileWriteWorker := fileworker.New(filepath, mWriteStorage)
 	fileWriteWorker.ExportFromFile(context.TODO())

@@ -3,16 +3,19 @@ package memstorage
 import (
 	"context"
 	"errors"
+	"sync"
 
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 )
 
 type MemStorage struct {
-	counter map[string]int64
-	gauge   map[string]float64
+	counterMutex sync.RWMutex
+	counter      map[string]int64
+	gaugeMutex   sync.RWMutex
+	gauge        map[string]float64
 }
 
-func NewMemStorage() *MemStorage {
+func New() *MemStorage {
 	return &MemStorage{counter: nil, gauge: nil}
 }
 
@@ -37,12 +40,16 @@ func (ms *MemStorage) SaveMetrics(ctx context.Context, metricList []metrics.Metr
 			if metric.Value == nil {
 				return errors.New("INVALID_METRIC")
 			}
+			ms.gaugeMutex.Lock()
 			ms.gauge[metric.ID] = *metric.Value
+			ms.gaugeMutex.Unlock()
 		case "counter":
 			if metric.Delta == nil {
 				return errors.New("INVALID_METRIC")
 			}
+			ms.counterMutex.Lock()
 			ms.counter[metric.ID] += *metric.Delta
+			ms.counterMutex.Unlock()
 		default:
 			return errors.New("INVALID_METRIC")
 		}
@@ -53,6 +60,8 @@ func (ms *MemStorage) SaveMetrics(ctx context.Context, metricList []metrics.Metr
 
 func (ms *MemStorage) ExtractMetrics(ctx context.Context) ([]metrics.Metric, error) {
 	metricList := []metrics.Metric{}
+
+	ms.gaugeMutex.RLock()
 	for key, val := range ms.gauge {
 		metricList = append(metricList, metrics.Metric{
 			ID:    key,
@@ -60,6 +69,9 @@ func (ms *MemStorage) ExtractMetrics(ctx context.Context) ([]metrics.Metric, err
 			Value: &val,
 		})
 	}
+	ms.gaugeMutex.RUnlock()
+
+	ms.counterMutex.RLock()
 	for key, val := range ms.counter {
 		metricList = append(metricList, metrics.Metric{
 			ID:    key,
@@ -67,19 +79,25 @@ func (ms *MemStorage) ExtractMetrics(ctx context.Context) ([]metrics.Metric, err
 			Delta: &val,
 		})
 	}
+	ms.counterMutex.RUnlock()
+
 	return metricList, nil
 }
 
 func (ms *MemStorage) GetMetric(ctx context.Context, metric *metrics.Metric) error {
 	switch metric.MType {
 	case "gauge":
+		ms.gaugeMutex.RLock()
 		val, ok := ms.gauge[metric.ID]
+		ms.gaugeMutex.RUnlock()
 		if !ok {
 			return errors.New("NOT_FOUND")
 		}
 		metric.Value = &val
 	case "counter":
+		ms.counterMutex.RLock()
 		val, ok := ms.counter[metric.ID]
+		ms.counterMutex.RUnlock()
 		if !ok {
 			return errors.New("NOT_FOUND")
 		}
