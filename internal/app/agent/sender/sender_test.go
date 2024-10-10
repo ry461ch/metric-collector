@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -20,32 +21,46 @@ import (
 )
 
 type MockServerStorage struct {
-	timesCalled    int64
-	metricsGauge   map[string]float64
-	metricsCounter map[string]int64
+	timesCalledMutex sync.Mutex
+	timesCalled      int64
+	gaugeMutex       sync.Mutex
+	metricsGauge     map[string]float64
+	counterMutex     sync.Mutex
+	metricsCounter   map[string]int64
 }
 
 func (m *MockServerStorage) handler(res http.ResponseWriter, req *http.Request) {
+	m.timesCalledMutex.Lock()
 	m.timesCalled += 1
+	m.timesCalledMutex.Unlock()
 
 	var buf bytes.Buffer
 	buf.ReadFrom(req.Body)
 	metricList := []metrics.Metric{}
 	json.Unmarshal(buf.Bytes(), &metricList)
 
+	m.counterMutex.Lock()
 	if m.metricsCounter == nil {
 		m.metricsCounter = map[string]int64{}
 	}
+	m.counterMutex.Unlock()
+
+	m.gaugeMutex.Lock()
 	if m.metricsGauge == nil {
 		m.metricsGauge = map[string]float64{}
 	}
+	m.gaugeMutex.Unlock()
 
 	for _, metric := range metricList {
 		switch metric.MType {
 		case "gauge":
+			m.gaugeMutex.Lock()
 			m.metricsGauge[metric.ID] = *metric.Value
+			m.gaugeMutex.Unlock()
 		case "counter":
+			m.counterMutex.Lock()
 			m.metricsCounter[metric.ID] = *metric.Delta
+			m.counterMutex.Unlock()
 		}
 	}
 	res.WriteHeader(http.StatusOK)

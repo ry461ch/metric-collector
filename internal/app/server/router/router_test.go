@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/resty.v1"
 
-	"github.com/ry461ch/metric-collector/pkg/logging"
 	"github.com/ry461ch/metric-collector/pkg/encrypt"
+	"github.com/ry461ch/metric-collector/pkg/logging"
 )
 
 type MockHandlers struct {

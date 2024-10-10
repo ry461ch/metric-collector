@@ -16,7 +16,7 @@ type Config struct {
 	StoreInterval   int64              `env:"STORE_INTERVAL"`
 	FileStoragePath string             `env:"FILE_STORAGE_PATH"`
 	Restore         bool               `env:"RESTORE"`
-	SecretKey		string			   `env:"KEY"`
+	SecretKey       string             `env:"KEY"`
 }
 
 func New() *Config {

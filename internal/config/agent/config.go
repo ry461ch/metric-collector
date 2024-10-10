@@ -13,8 +13,8 @@ type Config struct {
 	ReportIntervalSec int64              `env:"REPORT_INTERVAL"`
 	PollIntervalSec   int64              `env:"POLL_INTERVAL"`
 	Addr              netaddr.NetAddress `env:"ADDRESS"`
-	SecretKey		  string			 `env:"KEY"`
-	RateLimit		  int64				 `env:"RATE_LIMIT"`
+	SecretKey         string             `env:"KEY"`
+	RateLimit         int64              `env:"RATE_LIMIT"`
 }
 
 func New() *Config {

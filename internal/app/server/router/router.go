@@ -5,11 +5,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/ry461ch/metric-collector/pkg/encrypt"
+	"github.com/ry461ch/metric-collector/pkg/encrypt/middleware"
 	"github.com/ry461ch/metric-collector/pkg/logging/middleware"
 	"github.com/ry461ch/metric-collector/pkg/middlewares/compressor"
 	"github.com/ry461ch/metric-collector/pkg/middlewares/contenttypes"
-	"github.com/ry461ch/metric-collector/pkg/encrypt"
-	"github.com/ry461ch/metric-collector/pkg/encrypt/middleware"
 )
 
 func New(mHandlers metricHandlers, encrypter *encrypt.Encrypter) chi.Router {
