@@ -11,8 +11,8 @@ import (
 )
 
 type PGStorage struct {
-	dsn	string
-	db *sql.DB
+	dsn string
+	db  *sql.DB
 }
 
 func getDDL() string {
@@ -44,7 +44,7 @@ func getDDL() string {
 func New(DBDsn string) *PGStorage {
 	return &PGStorage{
 		dsn: DBDsn,
-		db: nil,
+		db:  nil,
 	}
 }
 

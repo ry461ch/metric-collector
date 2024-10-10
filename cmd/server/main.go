@@ -1,8 +1,8 @@
 package main
 
 import (
-	config "github.com/ry461ch/metric-collector/internal/config/server"
 	"github.com/ry461ch/metric-collector/internal/app/server"
+	config "github.com/ry461ch/metric-collector/internal/config/server"
 )
 
 func main() {
