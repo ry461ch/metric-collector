@@ -48,6 +48,7 @@ func (m *MockServerStorage) handler(res http.ResponseWriter, req *http.Request) 
 			m.metricsCounter[metric.ID] = *metric.Delta
 		}
 	}
+	res.WriteHeader(http.StatusOK)
 }
 
 func (m *MockServerStorage) mockRouter() chi.Router {
