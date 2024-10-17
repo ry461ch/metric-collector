@@ -17,14 +17,14 @@ import (
 )
 
 type Sender struct {
-	cfg                *config.Config
-	encrypter          *encrypt.Encrypter
+	cfg       *config.Config
+	encrypter *encrypt.Encrypter
 }
 
 func New(encrypter *encrypt.Encrypter, cfg *config.Config) *Sender {
 	return &Sender{
-		cfg:                cfg,
-		encrypter:          encrypter,
+		cfg:       cfg,
+		encrypter: encrypter,
 	}
 }
 
@@ -94,6 +94,6 @@ func (s *Sender) Run(ctx context.Context, metricChannel <-chan metrics.Metric) {
 		sendMetricsCtx, sendMetricsCtxCancel := context.WithTimeout(ctx, 5*time.Second)
 		s.sendMetrics(sendMetricsCtx, metricChannel)
 		sendMetricsCtxCancel()
-		time.Sleep(time.Duration(s.cfg.ReportIntervalSec)*time.Second)
+		time.Sleep(time.Duration(s.cfg.ReportIntervalSec) * time.Second)
 	}
 }

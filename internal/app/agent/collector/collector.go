@@ -16,12 +16,12 @@ import (
 )
 
 type Collector struct {
-	pollIntervalSec       int64
+	pollIntervalSec int64
 }
 
 func New(pollIntervalSec int64) *Collector {
 	return &Collector{
-		pollIntervalSec:       pollIntervalSec,
+		pollIntervalSec: pollIntervalSec,
 	}
 }
 
@@ -154,7 +154,7 @@ func (c *Collector) run(ctx context.Context, metricChannel chan<- metrics.Metric
 		collectCtx, collectCtxCancel := context.WithTimeout(ctx, 3*time.Second)
 		collectMetrics(collectCtx, metricChannel)
 		collectCtxCancel()
-		time.Sleep(time.Duration(c.pollIntervalSec)*time.Second)
+		time.Sleep(time.Duration(c.pollIntervalSec) * time.Second)
 	}
 }
 

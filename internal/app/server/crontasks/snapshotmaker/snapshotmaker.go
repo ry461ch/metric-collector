@@ -9,15 +9,15 @@ import (
 
 type (
 	SnapshotMaker struct {
-		storeIntervalSec     int64
-		fileWorker FileWorker
+		storeIntervalSec int64
+		fileWorker       FileWorker
 	}
 )
 
 func New(storeIntervalSec int64, fileWorker FileWorker) *SnapshotMaker {
 	return &SnapshotMaker{
-		storeIntervalSec:     storeIntervalSec,
-		fileWorker: fileWorker,
+		storeIntervalSec: storeIntervalSec,
+		fileWorker:       fileWorker,
 	}
 }
 
@@ -30,6 +30,6 @@ func (sm *SnapshotMaker) Run(ctx context.Context) {
 		default:
 		}
 		sm.fileWorker.ImportToFile(ctx)
-		time.Sleep(time.Duration(sm.storeIntervalSec)*time.Second)
+		time.Sleep(time.Duration(sm.storeIntervalSec) * time.Second)
 	}
 }
