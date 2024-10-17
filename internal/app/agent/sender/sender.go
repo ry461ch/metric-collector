@@ -17,14 +17,12 @@ import (
 )
 
 type Sender struct {
-	lastSendMetricTime time.Time
 	cfg                *config.Config
 	encrypter          *encrypt.Encrypter
 }
 
 func New(encrypter *encrypt.Encrypter, cfg *config.Config) *Sender {
 	return &Sender{
-		lastSendMetricTime: time.Time{},
 		cfg:                cfg,
 		encrypter:          encrypter,
 	}
@@ -86,22 +84,16 @@ func (s *Sender) sendMetrics(ctx context.Context, metricChannel <-chan metrics.M
 }
 
 func (s *Sender) Run(ctx context.Context, metricChannel <-chan metrics.Metric) {
-	defaultTime := time.Time{}
-
 	for {
 		select {
 		case <-ctx.Done():
 			log.Println("sender done")
 			return
 		default:
-			if s.lastSendMetricTime == defaultTime ||
-				time.Duration(time.Duration(s.cfg.ReportIntervalSec)*time.Second) <= time.Since(s.lastSendMetricTime) {
-				sendMetricsCtx, sendMetricsCtxCancel := context.WithTimeout(ctx, 5*time.Second)
-				s.sendMetrics(sendMetricsCtx, metricChannel)
-				sendMetricsCtxCancel()
-				s.lastSendMetricTime = time.Now()
-			}
 		}
-		time.Sleep(time.Second)
+		sendMetricsCtx, sendMetricsCtxCancel := context.WithTimeout(ctx, 5*time.Second)
+		s.sendMetrics(sendMetricsCtx, metricChannel)
+		sendMetricsCtxCancel()
+		time.Sleep(time.Duration(s.cfg.ReportIntervalSec)*time.Second)
 	}
 }
