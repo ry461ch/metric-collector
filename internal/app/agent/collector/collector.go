@@ -16,14 +16,12 @@ import (
 )
 
 type Collector struct {
-	lastCollectMetricTime time.Time
-	pollIntervalSec       int64
+	pollIntervalSec int64
 }
 
 func New(pollIntervalSec int64) *Collector {
 	return &Collector{
-		pollIntervalSec:       pollIntervalSec,
-		lastCollectMetricTime: time.Time{},
+		pollIntervalSec: pollIntervalSec,
 	}
 }
 
@@ -145,23 +143,28 @@ func collectMetrics(ctx context.Context, metricChannel chan<- metrics.Metric) {
 	log.Println("Successfully collect all metrics")
 }
 
-func (c *Collector) Run(ctx context.Context, metricChannel chan<- metrics.Metric) {
-	defaultTime := time.Time{}
-
+func (c *Collector) run(ctx context.Context, metricChannel chan<- metrics.Metric) {
 	for {
 		select {
 		case <-ctx.Done():
 			log.Println("collector done")
 			return
 		default:
-			if c.lastCollectMetricTime == defaultTime ||
-				time.Duration(time.Duration(c.pollIntervalSec)*time.Second) <= time.Since(c.lastCollectMetricTime) {
-				collectCtx, collectCtxCancel := context.WithTimeout(ctx, 3*time.Second)
-				collectMetrics(collectCtx, metricChannel)
-				collectCtxCancel()
-				c.lastCollectMetricTime = time.Now()
-			}
 		}
-		time.Sleep(time.Second)
+		collectCtx, collectCtxCancel := context.WithTimeout(ctx, 3*time.Second)
+		collectMetrics(collectCtx, metricChannel)
+		collectCtxCancel()
+		time.Sleep(time.Duration(c.pollIntervalSec) * time.Second)
 	}
+}
+
+func (c *Collector) CollectMetricsGenerator(ctx context.Context) chan metrics.Metric {
+	metricChannel := make(chan metrics.Metric, 10000)
+
+	go func() {
+		defer close(metricChannel)
+		c.run(ctx, metricChannel)
+	}()
+
+	return metricChannel
 }
