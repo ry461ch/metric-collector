@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
 	_ "net/http/pprof"
 
 	"github.com/ry461ch/metric-collector/internal/app/agent"
@@ -11,9 +9,5 @@ import (
 
 func main() {
 	agent := agent.New(config.New())
-	go agent.Run()
-	err := http.ListenAndServe(":8083", nil)
-	if err != nil {
-		fmt.Println(err)
-	}
+	agent.Run()
 }
