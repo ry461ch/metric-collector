@@ -55,6 +55,9 @@ func (pg *PGStorage) Initialize(ctx context.Context) error {
 		return err
 	}
 
+	db.SetMaxIdleConns(100)
+	db.SetMaxOpenConns(100)
+
 	requests := strings.Split(getDDL(), ";")
 
 	for _, request := range requests {
@@ -170,7 +173,7 @@ func (pg *PGStorage) ExtractMetrics(ctx context.Context) ([]metrics.Metric, erro
 	if !pg.Ping(ctx) {
 		return nil, errors.New("DATABASE_UNAVAILABLE")
 	}
-	metricList := []metrics.Metric{}
+	metricList := make([]metrics.Metric, 0)
 
 	// get gauge metrics
 	getGaugeQuery := "SELECT name, value FROM content.gauge_metrics"
@@ -183,7 +186,7 @@ func (pg *PGStorage) ExtractMetrics(ctx context.Context) ([]metrics.Metric, erro
 	for rows.Next() {
 		var key string
 		var val float64
-		err = rows.Scan(key, val)
+		err = rows.Scan(&key, &val)
 		if err != nil {
 			return nil, err
 		}
@@ -201,7 +204,7 @@ func (pg *PGStorage) ExtractMetrics(ctx context.Context) ([]metrics.Metric, erro
 	}
 
 	// get counter metrics
-	getCounterQuery := "SELECT delta FROM content.counter_metrics"
+	getCounterQuery := "SELECT name, delta FROM content.counter_metrics"
 	rows, err = pg.db.QueryContext(ctx, getCounterQuery)
 	if err != nil {
 		return nil, err
@@ -211,7 +214,7 @@ func (pg *PGStorage) ExtractMetrics(ctx context.Context) ([]metrics.Metric, erro
 	for rows.Next() {
 		var key string
 		var val int64
-		err = rows.Scan(key, val)
+		err = rows.Scan(&key, &val)
 		if err != nil {
 			return nil, err
 		}
