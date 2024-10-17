@@ -14,16 +14,14 @@ import (
 	"github.com/jackc/pgerrcode"
 
 	config "github.com/ry461ch/metric-collector/internal/config/server"
-	"github.com/ry461ch/metric-collector/internal/fileworker"
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
-	"github.com/ry461ch/metric-collector/internal/storage"
 )
 
 type (
 	Handlers struct {
 		config        *config.Config
-		metricStorage storage.Storage
-		fileWorker    *fileworker.FileWorker
+		metricStorage Storage
+		fileWorker    FileWorker
 	}
 
 	ResponseEmptyObject struct{}
@@ -33,7 +31,7 @@ type (
 	}
 )
 
-func New(config *config.Config, metricStorage storage.Storage, fileWorker *fileworker.FileWorker) *Handlers {
+func New(config *config.Config, metricStorage Storage, fileWorker FileWorker) *Handlers {
 	return &Handlers{
 		metricStorage: metricStorage,
 		config:        config,
@@ -331,7 +329,7 @@ func (h *Handlers) GetJSONHandler(res http.ResponseWriter, req *http.Request) {
 func (h *Handlers) Ping(res http.ResponseWriter, req *http.Request) {
 	ctx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
 	defer cancel()
-	if externalStorage, ok := h.metricStorage.(storage.ExternalStorage); ok && !externalStorage.Ping(ctx) {
+	if externalStorage, ok := h.metricStorage.(ExternalStorage); ok && !externalStorage.Ping(ctx) {
 		res.WriteHeader(http.StatusInternalServerError)
 		return
 	}

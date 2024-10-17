@@ -16,7 +16,6 @@ import (
 	"github.com/ry461ch/metric-collector/internal/app/server/router"
 	config "github.com/ry461ch/metric-collector/internal/config/server"
 	"github.com/ry461ch/metric-collector/internal/fileworker"
-	"github.com/ry461ch/metric-collector/internal/storage"
 	"github.com/ry461ch/metric-collector/internal/storage/memory"
 	"github.com/ry461ch/metric-collector/internal/storage/postgres"
 	"github.com/ry461ch/metric-collector/pkg/encrypt"
@@ -25,13 +24,13 @@ import (
 
 type Server struct {
 	cfg           *config.Config
-	metricStorage storage.Storage
+	metricStorage Storage
 	fileWorker    *fileworker.FileWorker
 	snapshotMaker *snapshotmaker.SnapshotMaker
 	server        *http.Server
 }
 
-func getStorage(cfg *config.Config) storage.Storage {
+func getStorage(cfg *config.Config) Storage {
 	if cfg.DBDsn != "" {
 		return pgstorage.New(cfg.DBDsn)
 	} else {
@@ -47,7 +46,7 @@ func New(cfg *config.Config) *Server {
 	fileWorker := fileworker.New(cfg.FileStoragePath, metricStorage)
 	handleService := handlers.New(cfg, metricStorage, fileWorker)
 	handler := router.New(handleService, encrypt.New(cfg.SecretKey))
-	snapshotMaker := snapshotmaker.New(&snapshotmaker.TimeState{}, cfg, fileWorker)
+	snapshotMaker := snapshotmaker.New(cfg.StoreInterval, fileWorker)
 	server := &http.Server{Addr: cfg.Addr.Host + ":" + strconv.FormatInt(cfg.Addr.Port, 10), Handler: handler}
 
 	return &Server{
@@ -63,7 +62,7 @@ func (s *Server) Run() {
 	err := s.metricStorage.Initialize(context.Background())
 	if err != nil {
 		logging.Logger.Warnln("Db wasn't initialized")
-	} else if externalStorage, ok := s.metricStorage.(storage.ExternalStorage); ok {
+	} else if externalStorage, ok := s.metricStorage.(ExternalStorage); ok {
 		defer externalStorage.Close()
 	}
 

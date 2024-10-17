@@ -1,4 +1,4 @@
-package storage
+package handlers
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 )
 
 type Storage interface {
-	Initialize(ctx context.Context) error
 	ExtractMetrics(ctx context.Context) ([]metrics.Metric, error)
 	SaveMetrics(ctx context.Context, metricList []metrics.Metric) error
 	GetMetric(ctx context.Context, metric *metrics.Metric) error
@@ -16,5 +15,8 @@ type Storage interface {
 type ExternalStorage interface {
 	Storage
 	Ping(ctx context.Context) bool
-	Close()
+}
+
+type FileWorker interface {
+	ImportToFile(ctx context.Context) error
 }

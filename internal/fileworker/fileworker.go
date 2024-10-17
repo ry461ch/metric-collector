@@ -8,15 +8,14 @@ import (
 	"os"
 
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
-	"github.com/ry461ch/metric-collector/internal/storage"
 )
 
 type FileWorker struct {
 	filePath      string
-	metricStorage storage.Storage
+	metricStorage Storage
 }
 
-func New(filePath string, metricStorage storage.Storage) *FileWorker {
+func New(filePath string, metricStorage Storage) *FileWorker {
 	return &FileWorker{filePath: filePath, metricStorage: metricStorage}
 }
 
