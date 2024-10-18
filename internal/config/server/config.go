@@ -1,6 +1,8 @@
 package serverconfig
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"flag"
 	"log"
 
@@ -17,6 +19,12 @@ type Config struct {
 	FileStoragePath string             `env:"FILE_STORAGE_PATH"`
 	Restore         bool               `env:"RESTORE"`
 	SecretKey       string             `env:"KEY"`
+}
+
+func generateKey() string {
+	defaultSecretKey := make([]byte, 16)
+	rand.Read(defaultSecretKey)
+	return hex.EncodeToString(defaultSecretKey)
 }
 
 func New() *Config {
@@ -40,7 +48,7 @@ func parseArgs(cfg *Config) {
 	flag.Int64Var(&cfg.StoreInterval, "i", 10, "Store interval seconds")
 	flag.StringVar(&cfg.FileStoragePath, "f", "/tmp/metrics-db.json", "File storage path")
 	flag.BoolVar(&cfg.Restore, "r", true, "Load data from fileStoragePath when server is starting")
-	flag.StringVar(&cfg.SecretKey, "k", "", "Secret key")
+	flag.StringVar(&cfg.SecretKey, "k", generateKey(), "Secret key")
 	flag.Parse()
 }
 
