@@ -26,3 +26,24 @@ func TestCollectMetric(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkCollectMetric(b *testing.B) {
+	metricChannel := make(chan metrics.Metric, 100)
+	defer close(metricChannel)
+
+	for i := 0; i < b.N; i++ {
+		collectMetrics(context.TODO(), metricChannel)
+
+		b.StopTimer()
+		collectedMetrics := 0
+		for shouldStop := false; !shouldStop; {
+			select {
+			case <-metricChannel:
+				collectedMetrics++
+			default:
+				shouldStop = true
+			}
+		}
+		b.StartTimer()
+	}
+}

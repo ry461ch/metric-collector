@@ -1,10 +1,10 @@
+// Main module for running agent
 package agent
 
 import (
 	"context"
 	"os"
 	"os/signal"
-	"time"
 
 	"github.com/ry461ch/metric-collector/internal/app/agent/collector"
 	"github.com/ry461ch/metric-collector/internal/app/agent/sender"
@@ -13,17 +13,13 @@ import (
 )
 
 type (
-	TimeState struct {
-		LastCollectMetricTime time.Time
-		LastSendMetricTime    time.Time
-	}
-
 	Agent struct {
 		metricSender    *sender.Sender
 		metricCollector *collector.Collector
 	}
 )
 
+// Init Agent instance
 func New(cfg *config.Config) *Agent {
 	encrypter := encrypt.New(cfg.SecretKey)
 
@@ -33,6 +29,7 @@ func New(cfg *config.Config) *Agent {
 	}
 }
 
+// Run agent work
 func (a *Agent) Run() {
 	collectorCtx, collectorCtxCancel := context.WithCancel(context.Background())
 	senderCtx, senderCtxCancel := context.WithCancel(context.Background())

@@ -14,7 +14,7 @@ import (
 	config "github.com/ry461ch/metric-collector/internal/config/server"
 	"github.com/ry461ch/metric-collector/internal/fileworker"
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
-	"github.com/ry461ch/metric-collector/internal/storage/memory"
+	memstorage "github.com/ry461ch/metric-collector/internal/storage/memory"
 )
 
 func mockRouter(handlers *Handlers) chi.Router {
