@@ -68,7 +68,7 @@ func (h *Handlers) getMetric(ctx context.Context, metric *metrics.Metric) error 
 		if err == nil {
 			return nil
 		}
-		if pgerrcode.IsConnectionException(err.Error()) && i != 7 {
+		if pgerrcode.IsConnectionException(err.Error()) && i != 3 {
 			cancel()
 			time.Sleep(time.Second * time.Duration(i*2+1))
 			continue
@@ -89,7 +89,7 @@ func (h *Handlers) extractMetrics(ctx context.Context) ([]metrics.Metric, error)
 		if err == nil {
 			return metricList, nil
 		}
-		if pgerrcode.IsConnectionException(err.Error()) && i != 7 {
+		if pgerrcode.IsConnectionException(err.Error()) && i != 3 {
 			cancel()
 			time.Sleep(time.Second * time.Duration(i*2+1))
 			continue

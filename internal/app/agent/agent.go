@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"os/signal"
-	"time"
 
 	"github.com/ry461ch/metric-collector/internal/app/agent/collector"
 	"github.com/ry461ch/metric-collector/internal/app/agent/sender"
@@ -13,11 +12,6 @@ import (
 )
 
 type (
-	TimeState struct {
-		LastCollectMetricTime time.Time
-		LastSendMetricTime    time.Time
-	}
-
 	Agent struct {
 		metricSender    *sender.Sender
 		metricCollector *collector.Collector
