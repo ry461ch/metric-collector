@@ -1,3 +1,4 @@
+// Module for making snapshots of metric storage to file
 package snapshotmaker
 
 import (
@@ -14,6 +15,7 @@ type (
 	}
 )
 
+// Init snapshotMaker
 func New(storeIntervalSec int64, fileWorker FileWorker) *SnapshotMaker {
 	return &SnapshotMaker{
 		storeIntervalSec: storeIntervalSec,
@@ -21,6 +23,7 @@ func New(storeIntervalSec int64, fileWorker FileWorker) *SnapshotMaker {
 	}
 }
 
+// Run snapshotmaker
 func (sm *SnapshotMaker) Run(ctx context.Context) {
 	for {
 		select {

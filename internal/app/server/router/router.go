@@ -1,3 +1,4 @@
+// Module router
 package router
 
 import (
@@ -13,6 +14,7 @@ import (
 	"github.com/ry461ch/metric-collector/pkg/middlewares/contenttypes"
 )
 
+// Router initialization
 func New(mHandlers metricHandlers, encrypter *encrypt.Encrypter) chi.Router {
 	r := chi.NewRouter()
 	r.Use(

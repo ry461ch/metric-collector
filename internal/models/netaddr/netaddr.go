@@ -1,3 +1,4 @@
+// Module for addr parsing
 package netaddr
 
 import (

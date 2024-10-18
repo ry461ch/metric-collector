@@ -19,6 +19,7 @@ type Collector struct {
 	pollIntervalSec int64
 }
 
+// Init Metric Collector
 func New(pollIntervalSec int64) *Collector {
 	return &Collector{
 		pollIntervalSec: pollIntervalSec,
@@ -158,6 +159,7 @@ func (c *Collector) run(ctx context.Context, metricChannel chan<- metrics.Metric
 	}
 }
 
+// Creates channel and run goroutine for collecting metrics
 func (c *Collector) CollectMetricsGenerator(ctx context.Context) chan metrics.Metric {
 	metricChannel := make(chan metrics.Metric, 10000)
 

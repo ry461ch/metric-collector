@@ -1,3 +1,4 @@
+// Module for parsing server environment and flags
 package serverconfig
 
 import (

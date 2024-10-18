@@ -1,3 +1,4 @@
+// Main module for running server
 package server
 
 import (
@@ -38,6 +39,7 @@ func getStorage(cfg *config.Config) Storage {
 	}
 }
 
+// Init server instance
 func New(cfg *config.Config) *Server {
 	logging.Initialize(cfg.LogLevel)
 
@@ -58,6 +60,7 @@ func New(cfg *config.Config) *Server {
 	}
 }
 
+// Run server
 func (s *Server) Run() {
 	err := s.metricStorage.Initialize(context.Background())
 	if err != nil {
