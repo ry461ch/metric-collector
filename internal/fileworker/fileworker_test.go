@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
-	"github.com/ry461ch/metric-collector/internal/storage/memory"
+	memstorage "github.com/ry461ch/metric-collector/internal/storage/memory"
 )
 
 func TestBase(t *testing.T) {

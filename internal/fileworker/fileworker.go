@@ -1,3 +1,4 @@
+// Module for export and import metrics data to file
 package fileworker
 
 import (
@@ -15,10 +16,12 @@ type FileWorker struct {
 	metricStorage Storage
 }
 
+// Init FileWorker instance
 func New(filePath string, metricStorage Storage) *FileWorker {
 	return &FileWorker{filePath: filePath, metricStorage: metricStorage}
 }
 
+// Export metrics from file to storage.
 // Here we write all the data into one variable, because we store
 // all data in memory, so we can assume that we have
 // enough memory to duplicate our metric data
@@ -57,6 +60,7 @@ func (fw *FileWorker) ExportFromFile(ctx context.Context) error {
 	return nil
 }
 
+// Import metrics from storage to file.
 func (fw *FileWorker) ImportToFile(ctx context.Context) error {
 	if fw.metricStorage == nil {
 		return errors.New("DB_NOT_INITIALIZED")

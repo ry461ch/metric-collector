@@ -1,3 +1,4 @@
+// Main module for running server
 package server
 
 import (
@@ -16,8 +17,8 @@ import (
 	"github.com/ry461ch/metric-collector/internal/app/server/router"
 	config "github.com/ry461ch/metric-collector/internal/config/server"
 	"github.com/ry461ch/metric-collector/internal/fileworker"
-	"github.com/ry461ch/metric-collector/internal/storage/memory"
-	"github.com/ry461ch/metric-collector/internal/storage/postgres"
+	memstorage "github.com/ry461ch/metric-collector/internal/storage/memory"
+	pgstorage "github.com/ry461ch/metric-collector/internal/storage/postgres"
 	"github.com/ry461ch/metric-collector/pkg/encrypt"
 	"github.com/ry461ch/metric-collector/pkg/logging"
 )
@@ -38,6 +39,7 @@ func getStorage(cfg *config.Config) Storage {
 	}
 }
 
+// Init server instance
 func New(cfg *config.Config) *Server {
 	logging.Initialize(cfg.LogLevel)
 
@@ -58,6 +60,7 @@ func New(cfg *config.Config) *Server {
 	}
 }
 
+// Run server
 func (s *Server) Run() {
 	err := s.metricStorage.Initialize(context.Background())
 	if err != nil {
