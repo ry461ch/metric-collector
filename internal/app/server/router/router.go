@@ -7,8 +7,8 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/ry461ch/metric-collector/pkg/encrypt"
-	"github.com/ry461ch/metric-collector/pkg/encrypt/middleware"
-	"github.com/ry461ch/metric-collector/pkg/logging/middleware"
+	encryptmiddleware "github.com/ry461ch/metric-collector/pkg/encrypt/middleware"
+	requestlogger "github.com/ry461ch/metric-collector/pkg/logging/middleware"
 	"github.com/ry461ch/metric-collector/pkg/middlewares/compressor"
 	"github.com/ry461ch/metric-collector/pkg/middlewares/contenttypes"
 )

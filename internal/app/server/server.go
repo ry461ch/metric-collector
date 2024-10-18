@@ -16,8 +16,8 @@ import (
 	"github.com/ry461ch/metric-collector/internal/app/server/router"
 	config "github.com/ry461ch/metric-collector/internal/config/server"
 	"github.com/ry461ch/metric-collector/internal/fileworker"
-	"github.com/ry461ch/metric-collector/internal/storage/memory"
-	"github.com/ry461ch/metric-collector/internal/storage/postgres"
+	memstorage "github.com/ry461ch/metric-collector/internal/storage/memory"
+	pgstorage "github.com/ry461ch/metric-collector/internal/storage/postgres"
 	"github.com/ry461ch/metric-collector/pkg/encrypt"
 	"github.com/ry461ch/metric-collector/pkg/logging"
 )
