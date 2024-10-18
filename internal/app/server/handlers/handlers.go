@@ -308,7 +308,7 @@ func (h *Handlers) GetPlainAllMetricsHandler(res http.ResponseWriter, req *http.
 }
 
 // PostJSONHandler godoc
-// @Summary Post json metric 
+// @Summary Post json metric
 // @Description Post json metric
 // @ID storagePostJSONSingle
 // @Accept  application/json
@@ -363,7 +363,7 @@ func (h *Handlers) PostJSONHandler(res http.ResponseWriter, req *http.Request) {
 }
 
 // GetJSONHandler godoc
-// @Summary Get json metric 
+// @Summary Get json metric
 // @Description Get json metric
 // @ID storageGetJSON
 // @Accept  application/json
