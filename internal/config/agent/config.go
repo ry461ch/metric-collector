@@ -1,3 +1,4 @@
+// Module for parsing agent environment and flags
 package agentconfig
 
 import (

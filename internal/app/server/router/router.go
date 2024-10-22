@@ -1,17 +1,20 @@
+// Module router
 package router
 
 import (
 	"net/http"
+	"net/http/pprof"
 
 	"github.com/go-chi/chi/v5"
 
 	"github.com/ry461ch/metric-collector/pkg/encrypt"
-	"github.com/ry461ch/metric-collector/pkg/encrypt/middleware"
-	"github.com/ry461ch/metric-collector/pkg/logging/middleware"
+	encryptmiddleware "github.com/ry461ch/metric-collector/pkg/encrypt/middleware"
+	requestlogger "github.com/ry461ch/metric-collector/pkg/logging/middleware"
 	"github.com/ry461ch/metric-collector/pkg/middlewares/compressor"
 	"github.com/ry461ch/metric-collector/pkg/middlewares/contenttypes"
 )
 
+// Router initialization
 func New(mHandlers metricHandlers, encrypter *encrypt.Encrypter) chi.Router {
 	r := chi.NewRouter()
 	r.Use(
@@ -86,6 +89,19 @@ func New(mHandlers metricHandlers, encrypter *encrypt.Encrypter) chi.Router {
 	r.Route("/", func(r chi.Router) {
 		r.Use(contenttypes.ValidatePlainContentType)
 		r.Get("/", mHandlers.GetPlainAllMetricsHandler)
+	})
+	r.Route("/debug/pprof/", func(r chi.Router) {
+		r.Get("/", pprof.Index)
+		r.Get("/cmdline", pprof.Cmdline)
+		r.Get("/profile", pprof.Profile)
+		r.Get("/symbol", pprof.Symbol)
+		r.Get("/trace", pprof.Trace)
+		r.Handle("/allocs", pprof.Handler("allocs"))
+		r.Handle("/goroutine", pprof.Handler("goroutine"))
+		r.Handle("/threadcreate", pprof.Handler("threadcreate"))
+		r.Handle("/mutex", pprof.Handler("mutex"))
+		r.Handle("/heap", pprof.Handler("heap"))
+		r.Handle("/block", pprof.Handler("block"))
 	})
 	return r
 }

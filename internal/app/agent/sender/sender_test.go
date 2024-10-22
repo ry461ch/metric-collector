@@ -135,3 +135,40 @@ func TestSendMetric(t *testing.T) {
 	assert.Equal(t, float64(10.0), serverStorage.metricsGauge["test_3"], "Неправильно записалась метрика в хранилище")
 	assert.Equal(t, int64(10), serverStorage.metricsCounter["test_1"], "Неправильно записалась метрика в хранилище")
 }
+
+func BenchmarkSendMetric(b *testing.B) {
+	testCounterValue := int64(10)
+	testGaugeValue := float64(10.0)
+
+	serverStorage := MockServerStorage{}
+	router := serverStorage.mockRouter()
+	srv := httptest.NewServer(router)
+	defer srv.Close()
+
+	metricChannel := make(chan metrics.Metric, 100)
+	defer close(metricChannel)
+
+	sender := Sender{
+		cfg:       &config.Config{Addr: *splitURL(srv.URL), RateLimit: 2},
+		encrypter: encrypt.New("test"),
+	}
+
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		for j := 0; j < 50; j++ {
+			metricChannel <- metrics.Metric{
+				ID:    "test_1",
+				MType: "counter",
+				Delta: &testCounterValue,
+			}
+			metricChannel <- metrics.Metric{
+				ID:    "test_2",
+				MType: "gauge",
+				Value: &testGaugeValue,
+			}
+		}
+
+		b.StartTimer()
+		sender.sendMetrics(context.TODO(), metricChannel)
+	}
+}

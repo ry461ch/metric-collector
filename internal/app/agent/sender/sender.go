@@ -1,3 +1,4 @@
+// Module for sending metrics to server
 package sender
 
 import (
@@ -21,6 +22,7 @@ type Sender struct {
 	encrypter *encrypt.Encrypter
 }
 
+// Init Metric Sender
 func New(encrypter *encrypt.Encrypter, cfg *config.Config) *Sender {
 	return &Sender{
 		cfg:       cfg,
@@ -83,6 +85,7 @@ func (s *Sender) sendMetrics(ctx context.Context, metricChannel <-chan metrics.M
 	log.Println("Successfully send all metrics")
 }
 
+// Run metric sender: get metrics from channel and make request to metric server
 func (s *Sender) Run(ctx context.Context, metricChannel <-chan metrics.Metric) {
 	for {
 		select {

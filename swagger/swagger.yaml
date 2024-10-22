@@ -1,0 +1,305 @@
+definitions:
+  metrics.Metric:
+    properties:
+      delta:
+        description: значение метрики в случае передачи counter
+        type: integer
+      id:
+        description: имя метрики
+        type: string
+      type:
+        description: параметр, принимающий значение gauge или counter
+        enum:
+        - counter
+        - gauge
+        type: string
+      value:
+        description: значение метрики в случае передачи gauge
+        type: number
+    type: object
+info:
+  contact: {}
+  description: Сервис хранения метрик.
+  title: Metric API
+  version: "1.0"
+paths:
+  /:
+    get:
+      consumes:
+      - text/plain
+      description: Get all metrics
+      operationId: storageGetPlainAll
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "500":
+          description: Internal Error
+          schema:
+            type: string
+      security:
+      - SecurityKeyAuth: []
+      summary: Get all metrics
+  /ping:
+    get:
+      consumes:
+      - application/json
+      operationId: infoHealth
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "500":
+          description: Internal error
+          schema:
+            type: string
+      summary: Ping server
+  /update:
+    post:
+      consumes:
+      - application/json
+      description: Post json metric
+      operationId: storagePostJSONSingle
+      parameters:
+      - description: Metric data
+        in: body
+        name: metric
+        required: true
+        schema:
+          $ref: '#/definitions/metrics.Metric'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Error
+          schema:
+            type: string
+      security:
+      - SecurityKeyAuth: []
+      summary: Post json metric
+  /update/counter/{name}/{value}:
+    post:
+      consumes:
+      - text/plain
+      description: Save counter metric
+      operationId: storagePostPlainCounter
+      parameters:
+      - description: Metric name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Metric value
+        in: path
+        name: value
+        required: true
+        type: number
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Error
+          schema:
+            type: string
+      security:
+      - SecurityKeyAuth: []
+      summary: Save one metric with counter type
+  /update/gauge/{name}/{value}:
+    post:
+      consumes:
+      - text/plain
+      description: Save gauge metric
+      operationId: storagePostPlainGauge
+      parameters:
+      - description: Metric name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Metric value
+        in: path
+        name: value
+        required: true
+        type: number
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Error
+          schema:
+            type: string
+      security:
+      - SecurityKeyAuth: []
+      summary: Save one metric with gauge type
+  /updates:
+    post:
+      consumes:
+      - application/json
+      description: Post json metrics
+      operationId: storagePostJSONSeveral
+      parameters:
+      - description: Metric data
+        in: body
+        name: metrics
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/metrics.Metric'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Error
+          schema:
+            type: string
+      security:
+      - SecurityKeyAuth: []
+      summary: Post json metric s
+  /value:
+    get:
+      consumes:
+      - application/json
+      description: Get json metric
+      operationId: storageGetJSON
+      parameters:
+      - description: Metric data
+        in: body
+        name: metric
+        required: true
+        schema:
+          $ref: '#/definitions/metrics.Metric'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/metrics.Metric'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Error
+          schema:
+            type: string
+      security:
+      - SecurityKeyAuth: []
+      summary: Get json metric
+  /value/counter/{name}:
+    get:
+      consumes:
+      - text/plain
+      description: Get counter metric
+      operationId: storageGetPlainCounter
+      parameters:
+      - description: Metric name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Error
+          schema:
+            type: string
+      security:
+      - SecurityKeyAuth: []
+      summary: Get one metric with counter type
+  /value/gauge/{name}:
+    get:
+      consumes:
+      - text/plain
+      description: Get gauge metric
+      operationId: storageGetPlainGauge
+      parameters:
+      - description: Metric name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Error
+          schema:
+            type: string
+      security:
+      - SecurityKeyAuth: []
+      summary: Get one metric with gauge type
+securityDefinitions:
+  SecurityKeyAuth:
+    in: header
+    name: HashSHA256
+    type: apiKey
+swagger: "2.0"

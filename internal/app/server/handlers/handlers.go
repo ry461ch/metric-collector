@@ -1,3 +1,4 @@
+// Module for handling all metric requests
 package handlers
 
 import (
@@ -17,6 +18,14 @@ import (
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 )
 
+// @Title Metric API
+// @Description Сервис хранения метрик.
+// @Version 1.0
+
+// @SecurityDefinitions.apikey SecurityKeyAuth
+// @In header
+// @Name HashSHA256
+
 type (
 	Handlers struct {
 		config        *config.Config
@@ -31,6 +40,7 @@ type (
 	}
 )
 
+// Init metric handlers
 func New(config *config.Config, metricStorage Storage, fileWorker FileWorker) *Handlers {
 	return &Handlers{
 		metricStorage: metricStorage,
@@ -68,7 +78,7 @@ func (h *Handlers) getMetric(ctx context.Context, metric *metrics.Metric) error 
 		if err == nil {
 			return nil
 		}
-		if pgerrcode.IsConnectionException(err.Error()) && i != 7 {
+		if pgerrcode.IsConnectionException(err.Error()) && i != 3 {
 			cancel()
 			time.Sleep(time.Second * time.Duration(i*2+1))
 			continue
@@ -89,7 +99,7 @@ func (h *Handlers) extractMetrics(ctx context.Context) ([]metrics.Metric, error)
 		if err == nil {
 			return metricList, nil
 		}
-		if pgerrcode.IsConnectionException(err.Error()) && i != 7 {
+		if pgerrcode.IsConnectionException(err.Error()) && i != 3 {
 			cancel()
 			time.Sleep(time.Second * time.Duration(i*2+1))
 			continue
@@ -99,6 +109,19 @@ func (h *Handlers) extractMetrics(ctx context.Context) ([]metrics.Metric, error)
 	return []metrics.Metric{}, nil
 }
 
+// PostPlainGaugeHandler godoc
+// @Summary Save one metric with gauge type
+// @Description Save gauge metric
+// @ID storagePostPlainGauge
+// @Accept  text/plain
+// @Produce text/plain
+// @Param name path string true "Metric name"
+// @Param value path float64 true "Metric value"
+// @Success 200 {string} string "OK"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Error"
+// @Security SecurityKeyAuth
+// @Router /update/gauge/{name}/{value} [post]
 func (h *Handlers) PostPlainGaugeHandler(res http.ResponseWriter, req *http.Request) {
 	metricName := chi.URLParam(req, "name")
 	metricVal, err := strconv.ParseFloat(chi.URLParam(req, "value"), 64)
@@ -132,6 +155,19 @@ func (h *Handlers) PostPlainGaugeHandler(res http.ResponseWriter, req *http.Requ
 	res.WriteHeader(http.StatusOK)
 }
 
+// PostPlainCounterHandler godoc
+// @Summary Save one metric with counter type
+// @Description Save counter metric
+// @ID storagePostPlainCounter
+// @Accept  text/plain
+// @Produce text/plain
+// @Param name path string true "Metric name"
+// @Param value path float64 true "Metric value"
+// @Success 200 {string} string "OK"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Error"
+// @Security SecurityKeyAuth
+// @Router /update/counter/{name}/{value} [post]
 func (h *Handlers) PostPlainCounterHandler(res http.ResponseWriter, req *http.Request) {
 	metricName := chi.URLParam(req, "name")
 	metricVal, err := strconv.ParseInt(chi.URLParam(req, "value"), 10, 0)
@@ -165,6 +201,19 @@ func (h *Handlers) PostPlainCounterHandler(res http.ResponseWriter, req *http.Re
 	res.WriteHeader(http.StatusOK)
 }
 
+// GetPlainCounterHandler godoc
+// @Summary Get one metric with counter type
+// @Description Get counter metric
+// @ID storageGetPlainCounter
+// @Accept  text/plain
+// @Produce text/plain
+// @Param name path string true "Metric name"
+// @Success 200 {string} string "OK"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 404 {string} string "Not Found"
+// @Failure 500 {string} string "Internal Error"
+// @Security SecurityKeyAuth
+// @Router /value/counter/{name} [get]
 func (h *Handlers) GetPlainCounterHandler(res http.ResponseWriter, req *http.Request) {
 	metricName := chi.URLParam(req, "name")
 	metric := metrics.Metric{
@@ -189,6 +238,19 @@ func (h *Handlers) GetPlainCounterHandler(res http.ResponseWriter, req *http.Req
 	io.WriteString(res, strconv.FormatInt(*metric.Delta, 10))
 }
 
+// GetPlainGaugeHandler godoc
+// @Summary Get one metric with gauge type
+// @Description Get gauge metric
+// @ID storageGetPlainGauge
+// @Accept  text/plain
+// @Produce text/plain
+// @Param name path string true "Metric name"
+// @Success 200 {string} string "OK"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 404 {string} string "Not Found"
+// @Failure 500 {string} string "Internal Error"
+// @Security SecurityKeyAuth
+// @Router /value/gauge/{name} [get]
 func (h *Handlers) GetPlainGaugeHandler(res http.ResponseWriter, req *http.Request) {
 	metricName := chi.URLParam(req, "name")
 	metric := metrics.Metric{
@@ -213,6 +275,16 @@ func (h *Handlers) GetPlainGaugeHandler(res http.ResponseWriter, req *http.Reque
 	io.WriteString(res, strconv.FormatFloat(*metric.Value, 'f', -1, 64))
 }
 
+// GetPlainAllMetricsHandler godoc
+// @Summary Get all metrics
+// @Description Get all metrics
+// @ID storageGetPlainAll
+// @Accept  text/plain
+// @Produce text/plain
+// @Success 200 {string} string "OK"
+// @Failure 500 {string} string "Internal Error"
+// @Security SecurityKeyAuth
+// @Router / [get]
 func (h *Handlers) GetPlainAllMetricsHandler(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "text/html; charset=utf-8")
 
@@ -235,6 +307,18 @@ func (h *Handlers) GetPlainAllMetricsHandler(res http.ResponseWriter, req *http.
 	}
 }
 
+// PostJSONHandler godoc
+// @Summary Post json metric
+// @Description Post json metric
+// @ID storagePostJSONSingle
+// @Accept  application/json
+// @Produce application/json
+// @Param metric body metrics.Metric true "Metric data"
+// @Success 200 {string} string "OK"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Error"
+// @Security SecurityKeyAuth
+// @Router /update [post]
 func (h *Handlers) PostJSONHandler(res http.ResponseWriter, req *http.Request) {
 	var buf bytes.Buffer
 	_, err := buf.ReadFrom(req.Body)
@@ -278,6 +362,19 @@ func (h *Handlers) PostJSONHandler(res http.ResponseWriter, req *http.Request) {
 	res.Write(resp)
 }
 
+// GetJSONHandler godoc
+// @Summary Get json metric
+// @Description Get json metric
+// @ID storageGetJSON
+// @Accept  application/json
+// @Produce application/json
+// @Param metric body metrics.Metric true "Metric data"
+// @Success 200 {object} metrics.Metric
+// @Failure 400 {string} string "Bad Request"
+// @Failure 404 {string} string "Not Found"
+// @Failure 500 {string} string "Internal Error"
+// @Security SecurityKeyAuth
+// @Router /value [get]
 func (h *Handlers) GetJSONHandler(res http.ResponseWriter, req *http.Request) {
 	var buf bytes.Buffer
 	_, err := buf.ReadFrom(req.Body)
@@ -326,6 +423,14 @@ func (h *Handlers) GetJSONHandler(res http.ResponseWriter, req *http.Request) {
 	res.Write(resp)
 }
 
+// Ping godoc
+// @Summary Ping server
+// @ID infoHealth
+// @Accept  json
+// @Produce json
+// @Success 200 {string} string "OK"
+// @Failure 500 {string} string "Internal error"
+// @Router /ping [get]
 func (h *Handlers) Ping(res http.ResponseWriter, req *http.Request) {
 	ctx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
 	defer cancel()
@@ -336,6 +441,18 @@ func (h *Handlers) Ping(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusOK)
 }
 
+// PostMetricsHandler godoc
+// @Summary Post json metric s
+// @Description Post json metrics
+// @ID storagePostJSONSeveral
+// @Accept  application/json
+// @Produce application/json
+// @Param metrics body []metrics.Metric true "Metric data"
+// @Success 200 {string} string "OK"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Error"
+// @Security SecurityKeyAuth
+// @Router /updates [post]
 func (h *Handlers) PostMetricsHandler(res http.ResponseWriter, req *http.Request) {
 	var buf bytes.Buffer
 	_, err := buf.ReadFrom(req.Body)
