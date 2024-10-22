@@ -26,6 +26,7 @@ import (
 // @In header
 // @Name HashSHA256
 
+// Типы для работы хэндлеров сервера метрик
 type (
 	// Handlers - обработчики запросов на сохранение/получение метрик
 	Handlers struct {
