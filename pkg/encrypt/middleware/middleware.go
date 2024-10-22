@@ -9,17 +9,20 @@ import (
 	"github.com/ry461ch/metric-collector/pkg/encrypt"
 )
 
+// Миддлваря для расшфровки шифровки сообщений
 type ResponseEncrypter struct {
 	http.ResponseWriter
 	encrypter *encrypt.Encrypter
 }
 
+// Запись хедера с закодированным хешем тела
 func (re *ResponseEncrypter) Write(b []byte) (int, error) {
 	bodyHash := re.encrypter.EncryptMessage(b)
 	re.Header().Set("HashSHA256", fmt.Sprintf("%x", bodyHash))
 	return re.ResponseWriter.Write(b)
 }
 
+// Проверка подписи пришедшего запроса и отправка зашифрованного сообщения клиенту
 func CheckRequestAndEncryptResponse(encrypter *encrypt.Encrypter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

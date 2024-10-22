@@ -12,6 +12,7 @@ import (
 	"github.com/ry461ch/metric-collector/internal/models/netaddr"
 )
 
+// Конфиг сервера
 type Config struct {
 	DBDsn           string             `env:"DATABASE_DSN"`
 	Addr            netaddr.NetAddress `env:"ADDRESS"`
@@ -28,6 +29,7 @@ func generateKey() string {
 	return hex.EncodeToString(defaultSecretKey)
 }
 
+// Парсинг аргументов и переменных окружения для создания конфига сервера
 func New() *Config {
 	addr := netaddr.NetAddress{Host: "localhost", Port: 8080}
 	cfg := &Config{

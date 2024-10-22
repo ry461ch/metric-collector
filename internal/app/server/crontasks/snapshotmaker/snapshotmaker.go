@@ -8,12 +8,11 @@ import (
 	"github.com/ry461ch/metric-collector/pkg/logging"
 )
 
-type (
-	SnapshotMaker struct {
-		storeIntervalSec int64
-		fileWorker       FileWorker
-	}
-)
+// Воркер, который перодически сохраняет слепок метрик в файл
+type SnapshotMaker struct {
+	storeIntervalSec int64
+	fileWorker       FileWorker
+}
 
 // Init snapshotMaker
 func New(storeIntervalSec int64, fileWorker FileWorker) *SnapshotMaker {

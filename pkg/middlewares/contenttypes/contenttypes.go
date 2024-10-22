@@ -4,6 +4,7 @@ import (
 	"net/http"
 )
 
+// Миддлваря проверки запроса на content-type==application/json
 func ValidateJSONContentType(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		contentType := req.Header.Get("Content-Type")
@@ -17,6 +18,7 @@ func ValidateJSONContentType(next http.Handler) http.Handler {
 	})
 }
 
+// Миддлваря проверки запроса на content-type==text/plain
 func ValidatePlainContentType(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		contentType := req.Header.Get("Content-Type")

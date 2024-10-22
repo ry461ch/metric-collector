@@ -11,6 +11,7 @@ import (
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 )
 
+// FileWorker для перемещения метрик между хранлкой и файлами
 type FileWorker struct {
 	filePath      string
 	metricStorage Storage

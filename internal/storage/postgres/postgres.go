@@ -11,6 +11,7 @@ import (
 	"github.com/ry461ch/metric-collector/pkg/logging"
 )
 
+// Хранилище метрик в постгресе
 type PGStorage struct {
 	dsn string
 	db  *sql.DB

@@ -12,12 +12,11 @@ import (
 	"github.com/ry461ch/metric-collector/pkg/encrypt"
 )
 
-type (
-	Agent struct {
-		metricSender    *sender.Sender
-		metricCollector *collector.Collector
-	}
-)
+// Agent запускает агента по сбору и отправки метрик на сервер
+type Agent struct {
+	metricSender    *sender.Sender
+	metricCollector *collector.Collector
+}
 
 // Init Agent instance
 func New(cfg *config.Config) *Agent {

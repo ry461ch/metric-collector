@@ -26,15 +26,19 @@ import (
 // @In header
 // @Name HashSHA256
 
+// Типы для работы хэндлеров сервера метрик
 type (
+	// Handlers - обработчики запросов на сохранение/получение метрик
 	Handlers struct {
 		config        *config.Config
 		metricStorage Storage
 		fileWorker    FileWorker
 	}
 
+	// ResponseEmptyObject - пустой объект для возврата из функций с content-type=application/json
 	ResponseEmptyObject struct{}
 
+	// ResponseErrorObject - объект-ошибка для возврата из функций с content-type=application/json
 	ResponseErrorObject struct {
 		Detail string `json:"detail,omitempty"`
 	}

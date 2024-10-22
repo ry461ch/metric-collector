@@ -7,19 +7,23 @@ import (
 	"strings"
 )
 
+// Модель хранения адреса
 type NetAddress struct {
 	Host string
 	Port int64
 }
 
+// Строковое представление адреса
 func (a NetAddress) String() string {
 	return a.Host + ":" + strconv.FormatInt(a.Port, 10)
 }
 
+// Создание объекта тпа NetAddress из json
 func (a *NetAddress) UnmarshalText(text []byte) error {
 	return a.Set(string(text))
 }
 
+// Создание объекта тпа NetAddress из строки
 func (a *NetAddress) Set(s string) error {
 	if s == "" {
 		return nil

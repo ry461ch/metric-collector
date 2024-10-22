@@ -23,6 +23,7 @@ import (
 	"github.com/ry461ch/metric-collector/pkg/logging"
 )
 
+// Сервер для сбора и сохранения метрик
 type Server struct {
 	cfg           *config.Config
 	metricStorage Storage
