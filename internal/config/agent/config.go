@@ -10,6 +10,7 @@ import (
 	"github.com/ry461ch/metric-collector/internal/models/netaddr"
 )
 
+// Конфиг агента
 type Config struct {
 	ReportIntervalSec int64              `env:"REPORT_INTERVAL"`
 	PollIntervalSec   int64              `env:"POLL_INTERVAL"`
@@ -18,6 +19,7 @@ type Config struct {
 	RateLimit         int64              `env:"RATE_LIMIT"`
 }
 
+// Парсинг аргументов и переменных окружения для создания конфига агента
 func New() *Config {
 	addr := netaddr.NetAddress{Host: "localhost", Port: 8080}
 	cfg := &Config{ReportIntervalSec: 10, PollIntervalSec: 2, Addr: addr}

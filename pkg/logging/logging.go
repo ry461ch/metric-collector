@@ -6,8 +6,10 @@ import (
 	"go.uber.org/zap"
 )
 
+// Логгер
 var Logger zap.SugaredLogger
 
+// Инициалзация логгера
 func Initialize(level string) error {
 	logCfg := zap.NewDevelopmentConfig()
 	switch level {

@@ -13,6 +13,7 @@ import (
 )
 
 type (
+	// Agent запускает агента по сбору и отправки метрик на сервер
 	Agent struct {
 		metricSender    *sender.Sender
 		metricCollector *collector.Collector

@@ -7,15 +7,18 @@ import (
 	"strings"
 )
 
+// Архиватор запросов
 type Compressor struct {
 	http.ResponseWriter
 	Writer io.Writer
 }
 
+// проксирование метода Write в ResponseWiter
 func (w Compressor) Write(b []byte) (int, error) {
 	return w.Writer.Write(b)
 }
 
+// Миддлваря архиватора
 func GzipHandle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		contentType := r.Header.Get("Content-Type")

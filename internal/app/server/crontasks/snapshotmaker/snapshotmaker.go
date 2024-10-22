@@ -9,6 +9,7 @@ import (
 )
 
 type (
+	// Воркер, который перодически сохраняет слепок метрик в файл
 	SnapshotMaker struct {
 		storeIntervalSec int64
 		fileWorker       FileWorker

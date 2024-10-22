@@ -17,6 +17,7 @@ import (
 	"github.com/ry461ch/metric-collector/pkg/encrypt"
 )
 
+// Sender для отправки метрик на сервер
 type Sender struct {
 	cfg       *config.Config
 	encrypter *encrypt.Encrypter

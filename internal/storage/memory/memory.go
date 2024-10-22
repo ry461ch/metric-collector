@@ -8,6 +8,7 @@ import (
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 )
 
+// Хранилище метрик в памяти
 type MemStorage struct {
 	counterMutex sync.RWMutex
 	counter      map[string]int64
@@ -15,16 +16,19 @@ type MemStorage struct {
 	gauge        map[string]float64
 }
 
+// Создание инстанса хранилки метрик в памяти
 func New() *MemStorage {
 	return &MemStorage{counter: nil, gauge: nil}
 }
 
+// Инициализация инстанса хранилки
 func (ms *MemStorage) Initialize(ctx context.Context) error {
 	ms.counter = map[string]int64{}
 	ms.gauge = map[string]float64{}
 	return nil
 }
 
+// Сохранение метрик в хранилку
 func (ms *MemStorage) SaveMetrics(ctx context.Context, metricList []metrics.Metric) error {
 	// prepare arrays
 	for _, metric := range metricList {
@@ -58,6 +62,7 @@ func (ms *MemStorage) SaveMetrics(ctx context.Context, metricList []metrics.Metr
 	return nil
 }
 
+// Получение всех метрик из хранилки
 func (ms *MemStorage) ExtractMetrics(ctx context.Context) ([]metrics.Metric, error) {
 	metricList := []metrics.Metric{}
 
@@ -84,6 +89,7 @@ func (ms *MemStorage) ExtractMetrics(ctx context.Context) ([]metrics.Metric, err
 	return metricList, nil
 }
 
+// Получение метрики из хранилки
 func (ms *MemStorage) GetMetric(ctx context.Context, metric *metrics.Metric) error {
 	switch metric.MType {
 	case "gauge":

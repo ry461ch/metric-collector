@@ -6,6 +6,7 @@ import (
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 )
 
+// Storage - интерфейс для хранилища метрик
 type Storage interface {
 	Initialize(ctx context.Context) error
 	ExtractMetrics(ctx context.Context) ([]metrics.Metric, error)
@@ -13,6 +14,7 @@ type Storage interface {
 	GetMetric(ctx context.Context, metric *metrics.Metric) error
 }
 
+// ExternalStorage для удаленного хранилища метрик + функцональность доступности хранлища
 type ExternalStorage interface {
 	Storage
 	Ping(ctx context.Context) bool

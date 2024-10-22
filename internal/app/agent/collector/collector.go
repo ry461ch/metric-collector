@@ -15,6 +15,7 @@ import (
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 )
 
+// Collector для сбора метрик
 type Collector struct {
 	pollIntervalSec int64
 }
