@@ -3,10 +3,10 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"fmt"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -58,7 +58,7 @@ func TestPostTextGaugeHandler(t *testing.T) {
 }
 
 func ExampleHandlers_PostPlainGaugeHandler() {
-    memStorage := memstorage.New()
+	memStorage := memstorage.New()
 	memStorage.Initialize(context.TODO())
 
 	fileWorker := fileworker.New("", memStorage)
@@ -72,8 +72,8 @@ func ExampleHandlers_PostPlainGaugeHandler() {
 	res, _ := client.R().Post(srv.URL + "/update/gauge/some_metric/10.0")
 	fmt.Println(res.StatusCode())
 
-    // Output:
-    // 200
+	// Output:
+	// 200
 }
 
 func TestPostTextCounterHandler(t *testing.T) {
@@ -103,7 +103,7 @@ func TestPostTextCounterHandler(t *testing.T) {
 }
 
 func ExampleHandlers_PostPlainCounterHandler() {
-    memStorage := memstorage.New()
+	memStorage := memstorage.New()
 	memStorage.Initialize(context.TODO())
 
 	fileWorker := fileworker.New("", memStorage)
@@ -117,8 +117,8 @@ func ExampleHandlers_PostPlainCounterHandler() {
 	res, _ := client.R().Post(srv.URL + "/update/counter/some_metric/10")
 	fmt.Println(res.StatusCode())
 
-    // Output:
-    // 200
+	// Output:
+	// 200
 }
 
 func TestGetTextGaugeHandler(t *testing.T) {
@@ -152,7 +152,7 @@ func TestGetTextGaugeHandler(t *testing.T) {
 }
 
 func ExampleHandlers_GetPlainGaugeHandler() {
-    memStorage := memstorage.New()
+	memStorage := memstorage.New()
 	memStorage.Initialize(context.TODO())
 	mValue := float64(10.5)
 	metric := metrics.Metric{
@@ -176,8 +176,8 @@ func ExampleHandlers_GetPlainGaugeHandler() {
 	body := resp.Body()
 	fmt.Println(string(body))
 
-    // Output:
-    // 200
+	// Output:
+	// 200
 	// 10.5
 }
 
@@ -212,7 +212,7 @@ func TestGetTextCounterHandler(t *testing.T) {
 }
 
 func ExampleHandlers_GetPlainCounterHandler() {
-    memStorage := memstorage.New()
+	memStorage := memstorage.New()
 	memStorage.Initialize(context.TODO())
 	mValue := int64(10)
 	metric := metrics.Metric{
@@ -236,8 +236,8 @@ func ExampleHandlers_GetPlainCounterHandler() {
 	body := resp.Body()
 	fmt.Println(string(body))
 
-    // Output:
-    // 200
+	// Output:
+	// 200
 	// 10
 }
 
@@ -294,7 +294,7 @@ func TestGetAllMetricsHandler(t *testing.T) {
 }
 
 func ExampleHandlers_GetPlainAllMetricsHandler() {
-    memStorage := memstorage.New()
+	memStorage := memstorage.New()
 	memStorage.Initialize(context.TODO())
 
 	testFirstCounterValue := int64(1)
@@ -339,8 +339,8 @@ func ExampleHandlers_GetPlainAllMetricsHandler() {
 	body := resp.Body()
 	fmt.Println(len(string(body)))
 
-    // Output:
-    // 200
+	// Output:
+	// 200
 	// 52
 }
 
