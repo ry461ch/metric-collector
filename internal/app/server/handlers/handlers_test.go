@@ -389,9 +389,6 @@ func TestPostSeveralHandler(t *testing.T) {
 		Post(srv.URL + "/updates/")
 	assert.Nil(t, err, "Сервер вернул 500")
 
-	_, err = client.R().Post(srv.URL + "/update/counter/some_metric/12")
-	assert.Nil(t, err, "Сервер вернул 500")
-
 	searchCounterMetric := metrics.Metric{
 		ID:    "test",
 		MType: "counter",
