@@ -1,7 +1,11 @@
+// Мультичекер запускается двумя командами
+// go build -o lint cmd/staticlint/staticlint.go
+// ./lint ./...
 package main
 
 import (
 	"encoding/json"
+	"go/ast"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -24,6 +28,46 @@ type ConfigData struct {
 	Staticcheck []string
 }
 
+// Checker for os.Exit in main functions
+var OSExitCheckAnalyzer = &analysis.Analyzer{
+	Name: "exitcheck",
+	Doc:  "check for call os.Exit in main",
+	Run:  run,
+}
+
+func run(pass *analysis.Pass) (interface{}, error) {
+	for _, file := range pass.Files {
+		if file.Name.Name == "main" {
+			ast.Inspect(file, func(node ast.Node) bool {
+				if c, ok := node.(*ast.CallExpr); ok {
+					if s, ok := c.Fun.(*ast.SelectorExpr); ok {
+						lib := s.X.(*ast.Ident)
+						if lib.Name == "os" && s.Sel.Name == "Exit" {
+							if arg, ok := c.Args[0].(*ast.CallExpr); ok {
+								if argAst, ok := arg.Fun.(*ast.SelectorExpr); ok {
+									argLib := argAst.X.(*ast.Ident)
+									if argLib.Name != "m" || argAst.Sel.Name != "Run" {
+										pass.Reportf(c.Pos(), "os.Exit called")
+										return false
+									}
+								} else {
+									pass.Reportf(c.Pos(), "os.Exit called")
+									return false
+								}
+							} else {
+								pass.Reportf(c.Pos(), "os.Exit called")
+								return false
+							}
+						}
+					}
+				}
+				return true
+			})
+		}
+	}
+	return nil, nil
+}
+
 func main() {
 	appfile, err := os.Executable()
 	if err != nil {
@@ -41,6 +85,7 @@ func main() {
 		printf.Analyzer,
 		shadow.Analyzer,
 		structtag.Analyzer,
+		OSExitCheckAnalyzer,
 	}
 
 	addedChecks := make(map[string]bool)

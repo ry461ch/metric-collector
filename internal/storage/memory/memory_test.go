@@ -70,6 +70,32 @@ func TestCounter(t *testing.T) {
 		},
 	}
 	storage.SaveMetrics(context.TODO(), metricList)
+	metricList = []metrics.Metric{
+		{
+			ID:    "test",
+			MType: "invalid",
+			Delta: &mNewValue,
+		},
+	}
+	storage.SaveMetrics(context.TODO(), metricList)
+
+	metricList = []metrics.Metric{
+		{
+			ID:    "",
+			MType: "invalid",
+			Delta: &mNewValue,
+		},
+	}
+	storage.SaveMetrics(context.TODO(), metricList)
+
+	metricList = []metrics.Metric{
+		{
+			ID:    "test",
+			MType: "",
+			Delta: &mNewValue,
+		},
+	}
+	storage.SaveMetrics(context.TODO(), metricList)
 
 	searchMetric := metrics.Metric{
 		ID:    "test",

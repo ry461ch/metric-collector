@@ -663,3 +663,16 @@ func TestInvalidStoragePlainHandlers(t *testing.T) {
 		})
 	}
 }
+
+func TestGetAllInvalidStorageHandler(t *testing.T) {
+	fileWorker := fileworker.New("", &InvalidStorage{})
+	handlers := New(&config.Config{StoreInterval: 0}, &InvalidStorage{}, fileWorker)
+
+	router := mockRouter(handlers)
+	srv := httptest.NewServer(router)
+	defer srv.Close()
+
+	client := resty.New()
+	resp, _ := client.R().Get(srv.URL + "/")
+	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode(), "Статус не совпадает")
+}

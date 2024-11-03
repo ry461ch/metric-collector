@@ -143,10 +143,6 @@ func (h *Handlers) PostPlainGaugeHandler(res http.ResponseWriter, req *http.Requ
 
 	err = h.saveMetrics(req.Context(), metricList)
 	if err != nil {
-		if err.Error() == "INVALID_METRIC" {
-			res.WriteHeader(http.StatusBadRequest)
-			return
-		}
 		res.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -189,10 +185,6 @@ func (h *Handlers) PostPlainCounterHandler(res http.ResponseWriter, req *http.Re
 
 	err = h.saveMetrics(req.Context(), metricList)
 	if err != nil {
-		if err.Error() == "INVALID_METRIC" {
-			res.WriteHeader(http.StatusBadRequest)
-			return
-		}
 		res.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -231,10 +223,6 @@ func (h *Handlers) GetPlainCounterHandler(res http.ResponseWriter, req *http.Req
 			res.WriteHeader(http.StatusNotFound)
 			return
 		}
-		if err.Error() == "INVALID_METRIC_TYPE" {
-			res.WriteHeader(http.StatusBadRequest)
-			return
-		}
 		res.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -266,10 +254,6 @@ func (h *Handlers) GetPlainGaugeHandler(res http.ResponseWriter, req *http.Reque
 	if err != nil {
 		if err.Error() == "NOT_FOUND" {
 			res.WriteHeader(http.StatusNotFound)
-			return
-		}
-		if err.Error() == "INVALID_METRIC_TYPE" {
-			res.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		res.WriteHeader(http.StatusInternalServerError)
