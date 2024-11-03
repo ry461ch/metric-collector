@@ -476,7 +476,16 @@ jobs:
       - name: "Code increment #14 (race detection)"
         if: |
           github.ref == 'refs/heads/main' ||
-          github.head_ref == 'iter14'
+          github.head_ref == 'iter14' ||
+          github.head_ref == 'iter16' ||
+          github.head_ref == 'iter17' ||
+          github.head_ref == 'iter18' ||
+          github.head_ref == 'iter19' ||
+          github.head_ref == 'iter20' ||
+          github.head_ref == 'iter21' ||
+          github.head_ref == 'iter22' ||
+          github.head_ref == 'iter23' ||
+          github.head_ref == 'iter24'
         run: |
           go test -v -race ./...
       
@@ -535,7 +544,7 @@ jobs:
           SERVER_PORT=$(random unused-port)
           ADDRESS="localhost:${SERVER_PORT}"
           TEMP_FILE=$(random tempfile)
-          metricstest -test.v -test.run=^TestIteration14$ \
+          metricstest -test.v -test.run=^TestIteration19$ \
             -agent-binary-path=cmd/agent/agent \
             -binary-path=cmd/server/server \
             -database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
@@ -554,7 +563,7 @@ jobs:
           SERVER_PORT=$(random unused-port)
           ADDRESS="localhost:${SERVER_PORT}"
           TEMP_FILE=$(random tempfile)
-          metricstest -test.v -test.run=^TestIteration14$ \
+          metricstest -test.v -test.run=^TestIteration20$ \
             -agent-binary-path=cmd/agent/agent \
             -binary-path=cmd/server/server \
             -database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \

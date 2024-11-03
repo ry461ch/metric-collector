@@ -418,9 +418,9 @@ func (h *Handlers) GetJSONHandler(res http.ResponseWriter, req *http.Request) {
 
 	resp, err := json.Marshal(metric)
 	if err != nil {
-		resp, _ := json.Marshal(ResponseErrorObject{Detail: "Internal Server Error"})
+		respErr, _ := json.Marshal(ResponseErrorObject{Detail: "Internal Server Error"})
 		res.WriteHeader(http.StatusInternalServerError)
-		res.Write(resp)
+		res.Write(respErr)
 		return
 	}
 	res.WriteHeader(http.StatusOK)
