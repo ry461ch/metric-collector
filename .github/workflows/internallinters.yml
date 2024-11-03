@@ -1,4 +1,4 @@
-name: go vet test
+name: go internal linters
 
 on:
   pull_request:
@@ -14,7 +14,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Setup autotest binary
+      - name: Build linters binary
         run: |
           go build -o lint cmd/staticlint/staticlint.go
 
