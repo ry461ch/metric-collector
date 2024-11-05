@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -288,14 +289,19 @@ func TestRouter(t *testing.T) {
 	client := resty.New()
 
 	handlers := NewMockHandlers()
-	router := New(&handlers, encrypt.New("test"))
+	encrypter := encrypt.New("test")
+	router := New(&handlers, encrypter)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
 	for _, tc := range testCases {
 		t.Run(tc.testName, func(t *testing.T) {
+			reqBodyHash := encrypter.EncryptMessage([]byte(""))
+
 			resp, err := client.R().
 				SetHeader("Content-Type", tc.requestContentType).
+				SetHeader("HashSHA256", fmt.Sprintf("%x", reqBodyHash)).
+				SetBody([]byte("")).
 				Execute(tc.method, srv.URL+tc.requestPath)
 			assert.Nil(t, err, "Сервер вернул 500")
 			assert.Equal(t, tc.expectedCode, resp.StatusCode(), "Код ответа не совпадает с ожидаемым")

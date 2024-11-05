@@ -8,6 +8,8 @@ require (
 	gopkg.in/resty.v1 v1.12.0
 )
 
+require golang.org/x/exp/typeparams v0.0.0-20231108232855-2478ac86f678 // indirect
+
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
@@ -49,4 +51,5 @@ require (
 	golang.org/x/tools v0.26.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	honnef.co/go/tools v0.5.1
 )

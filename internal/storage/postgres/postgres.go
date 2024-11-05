@@ -146,7 +146,7 @@ func (pg *PGStorage) SaveMetrics(ctx context.Context, metricList []metrics.Metri
 		return err
 	}
 	for key, val := range gaugeMetrics {
-		_, err := stmt.ExecContext(ctx, key, val)
+		_, err = stmt.ExecContext(ctx, key, val)
 		if err != nil {
 			return err
 		}
@@ -162,7 +162,7 @@ func (pg *PGStorage) SaveMetrics(ctx context.Context, metricList []metrics.Metri
 		return err
 	}
 	for key, val := range counterMetrics {
-		_, err := stmt.ExecContext(ctx, key, val)
+		_, err = stmt.ExecContext(ctx, key, val)
 		if err != nil {
 			return err
 		}
