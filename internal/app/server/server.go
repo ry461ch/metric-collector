@@ -62,8 +62,8 @@ func New(cfg *config.Config) *Server {
 }
 
 // Run server
-func (s *Server) Run() {
-	err := s.metricStorage.Initialize(context.Background())
+func (s *Server) Run(ctx context.Context) {
+	err := s.metricStorage.Initialize(ctx)
 	if err != nil {
 		logging.Logger.Warnln("Db wasn't initialized")
 	} else if externalStorage, ok := s.metricStorage.(ExternalStorage); ok {
@@ -71,7 +71,7 @@ func (s *Server) Run() {
 	}
 
 	if s.cfg.Restore && s.cfg.DBDsn == "" {
-		s.fileWorker.ExportFromFile(context.Background())
+		s.fileWorker.ExportFromFile(ctx)
 	}
 
 	var wg sync.WaitGroup
@@ -85,7 +85,7 @@ func (s *Server) Run() {
 	}()
 
 	// run crontasks
-	snapshotMakerCtx, snapshotMakerCtxCancel := context.WithCancel(context.Background())
+	snapshotMakerCtx, snapshotMakerCtxCancel := context.WithCancel(ctx)
 	go func() {
 		if s.cfg.StoreInterval != int64(0) {
 			s.snapshotMaker.Run(snapshotMakerCtx)
@@ -97,14 +97,18 @@ func (s *Server) Run() {
 	go func() {
 		stop := make(chan os.Signal, 1)
 		signal.Notify(stop, os.Interrupt)
-		<-stop
-		fileCtx, fileCtxCancel := context.WithTimeout(context.Background(), 1*time.Second)
+		select {
+		case <-stop:
+		case <-ctx.Done():
+		}
+		fileCtx, fileCtxCancel := context.WithTimeout(ctx, 1*time.Second)
 		s.fileWorker.ImportToFile(fileCtx)
 		fileCtxCancel()
-		s.server.Shutdown(context.Background())
+		s.server.Shutdown(ctx)
 		snapshotMakerCtxCancel()
 		wg.Done()
 	}()
 
 	wg.Wait()
+	
 }

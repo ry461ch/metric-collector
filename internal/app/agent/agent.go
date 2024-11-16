@@ -29,9 +29,9 @@ func New(cfg *config.Config) *Agent {
 }
 
 // Run agent work
-func (a *Agent) Run() {
-	collectorCtx, collectorCtxCancel := context.WithCancel(context.Background())
-	senderCtx, senderCtxCancel := context.WithCancel(context.Background())
+func (a *Agent) Run(ctx context.Context) {
+	collectorCtx, collectorCtxCancel := context.WithCancel(ctx)
+	senderCtx, senderCtxCancel := context.WithCancel(ctx)
 
 	metricChannel := a.metricCollector.CollectMetricsGenerator(collectorCtx)
 
@@ -41,7 +41,10 @@ func (a *Agent) Run() {
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt)
-	<-stop
+	select {
+	case <-stop:
+	case <-ctx.Done():
+	}
 	collectorCtxCancel()
 	senderCtxCancel()
 }

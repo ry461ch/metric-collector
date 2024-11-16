@@ -284,6 +284,10 @@ func TestRouter(t *testing.T) {
 			expectedPathTimesCalled: map[string]int64{"postAllJson": 1},
 		},
 	}
+	logging.Initialize("WARN")
+	logging.Initialize("ERROR")
+	logging.Initialize("DEBUG")
+	logging.Initialize("INVALID")
 	logging.Initialize("INFO")
 
 	client := resty.New()

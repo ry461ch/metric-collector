@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"context"
 	_ "net/http/pprof"
 
 	"github.com/ry461ch/metric-collector/internal/app/server"
@@ -19,5 +20,5 @@ func main() {
 	fmt.Printf("Build date: %s\n", buildDate)
 	fmt.Printf("Build commit: %s\n", buildCommit)
 	server := server.New(config.New())
-	server.Run()
+	server.Run(context.Background())
 }
