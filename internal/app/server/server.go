@@ -21,7 +21,7 @@ import (
 	pgstorage "github.com/ry461ch/metric-collector/internal/storage/postgres"
 	"github.com/ry461ch/metric-collector/pkg/encrypt"
 	"github.com/ry461ch/metric-collector/pkg/logging"
-	"github.com/ry461ch/metric-collector/pkg/rsaencrypt"
+	"github.com/ry461ch/metric-collector/pkg/rsa"
 )
 
 // Сервер для сбора и сохранения метрик
@@ -31,7 +31,7 @@ type Server struct {
 	fileWorker    *fileworker.FileWorker
 	snapshotMaker *snapshotmaker.SnapshotMaker
 	server        *http.Server
-	rsaEncrypter  *rsaencrypt.RsaEncrypter
+	rsaDecrypter  *rsa.RsaDecrypter
 }
 
 func getStorage(cfg *config.Config) Storage {
@@ -46,16 +46,16 @@ func getStorage(cfg *config.Config) Storage {
 func New(cfg *config.Config) *Server {
 	logging.Initialize(cfg.LogLevel)
 
-	var rsaEncrypter *rsaencrypt.RsaEncrypter
+	var rsaDecrypter *rsa.RsaDecrypter
 	if cfg.CryptoKey != "" {
-		rsaEncrypter = rsaencrypt.New(cfg.CryptoKey)
+		rsaDecrypter = rsa.NewDecrypter(cfg.CryptoKey)
 	}
 
 	// initialize storage
 	metricStorage := getStorage(cfg)
 	fileWorker := fileworker.New(cfg.FileStoragePath, metricStorage)
 	handleService := handlers.New(cfg, metricStorage, fileWorker)
-	handler := router.New(handleService, encrypt.New(cfg.SecretKey), rsaEncrypter)
+	handler := router.New(handleService, encrypt.New(cfg.SecretKey), rsaDecrypter)
 	snapshotMaker := snapshotmaker.New(cfg.StoreInterval, fileWorker)
 	server := &http.Server{Addr: cfg.Addr.Host + ":" + strconv.FormatInt(cfg.Addr.Port, 10), Handler: handler}
 
@@ -65,15 +65,15 @@ func New(cfg *config.Config) *Server {
 		fileWorker:    fileWorker,
 		snapshotMaker: snapshotMaker,
 		server:        server,
-		rsaEncrypter:  rsaEncrypter,
+		rsaDecrypter:  rsaDecrypter,
 	}
 }
 
 // Run server
 func (s *Server) Run(ctx context.Context) {
 	err := s.metricStorage.Initialize(ctx)
-	if s.rsaEncrypter != nil {
-		s.rsaEncrypter.Initialize(ctx)
+	if s.rsaDecrypter != nil {
+		s.rsaDecrypter.Initialize(ctx)
 	}
 
 	if err != nil {

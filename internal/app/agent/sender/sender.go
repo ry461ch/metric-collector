@@ -15,18 +15,18 @@ import (
 	config "github.com/ry461ch/metric-collector/internal/config/agent"
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 	"github.com/ry461ch/metric-collector/pkg/encrypt"
-	"github.com/ry461ch/metric-collector/pkg/rsaencrypt"
+	"github.com/ry461ch/metric-collector/pkg/rsa"
 )
 
 // Sender для отправки метрик на сервер
 type Sender struct {
 	cfg          *config.Config
 	encrypter    *encrypt.Encrypter
-	rsaEncrypter *rsaencrypt.RsaEncrypter
+	rsaEncrypter *rsa.RsaEncrypter
 }
 
 // Init Metric Sender
-func New(encrypter *encrypt.Encrypter, rsaEncrypter *rsaencrypt.RsaEncrypter, cfg *config.Config) *Sender {
+func New(encrypter *encrypt.Encrypter, rsaEncrypter *rsa.RsaEncrypter, cfg *config.Config) *Sender {
 	return &Sender{
 		cfg:          cfg,
 		encrypter:    encrypter,

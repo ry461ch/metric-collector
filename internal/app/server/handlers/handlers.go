@@ -54,14 +54,14 @@ func New(config *config.Config, metricStorage Storage, fileWorker FileWorker) *H
 }
 
 func (h *Handlers) saveMetrics(ctx context.Context, metricList []metrics.Metric) error {
-	for i := 0; i <= 3; i += 1 {
+	for i := 0; i <= 1; i += 1 {
 		DBCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
 		defer cancel()
 		err := h.metricStorage.SaveMetrics(DBCtx, metricList)
 		if err == nil {
 			return nil
 		}
-		if pgerrcode.IsConnectionException(err.Error()) && i != 3 {
+		if pgerrcode.IsConnectionException(err.Error()) && i != 1 {
 			cancel()
 			time.Sleep(time.Second * time.Duration(1))
 			continue
@@ -75,14 +75,14 @@ func (h *Handlers) saveMetrics(ctx context.Context, metricList []metrics.Metric)
 }
 
 func (h *Handlers) getMetric(ctx context.Context, metric *metrics.Metric) error {
-	for i := 0; i <= 3; i += 1 {
+	for i := 0; i <= 1; i += 1 {
 		DBCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
 		defer cancel()
 		err := h.metricStorage.GetMetric(DBCtx, metric)
 		if err == nil {
 			return nil
 		}
-		if pgerrcode.IsConnectionException(err.Error()) && i != 3 {
+		if pgerrcode.IsConnectionException(err.Error()) && i != 1 {
 			cancel()
 			time.Sleep(time.Second * time.Duration(1))
 			continue
@@ -96,14 +96,14 @@ func (h *Handlers) getMetric(ctx context.Context, metric *metrics.Metric) error 
 }
 
 func (h *Handlers) extractMetrics(ctx context.Context) ([]metrics.Metric, error) {
-	for i := 0; i <= 3; i += 1 {
+	for i := 0; i <= 1; i += 1 {
 		DBCtx, cancel := context.WithTimeout(ctx, 4*time.Second)
 		defer cancel()
 		metricList, err := h.metricStorage.ExtractMetrics(DBCtx)
 		if err == nil {
 			return metricList, nil
 		}
-		if pgerrcode.IsConnectionException(err.Error()) && i != 3 {
+		if pgerrcode.IsConnectionException(err.Error()) && i != 1 {
 			cancel()
 			time.Sleep(time.Second * time.Duration(1))
 			continue

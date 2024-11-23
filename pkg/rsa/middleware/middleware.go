@@ -1,15 +1,15 @@
-package rsadecryptmiddleware
+package rsamiddleware
 
 import (
 	"bytes"
 	"io"
 	"net/http"
 
-	"github.com/ry461ch/metric-collector/pkg/rsaencrypt"
+	"github.com/ry461ch/metric-collector/pkg/rsa"
 )
 
 // Проверка подписи пришедшего запроса и отправка зашифрованного сообщения клиенту
-func DecryptResponse(encrypter *rsaencrypt.RsaEncrypter) func(http.Handler) http.Handler {
+func DecryptResponse(decrypter *rsa.RsaDecrypter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var buf bytes.Buffer
@@ -19,7 +19,7 @@ func DecryptResponse(encrypter *rsaencrypt.RsaEncrypter) func(http.Handler) http
 				return
 			}
 			reqBody := buf.Bytes()
-			reqDecrypted, err := encrypter.Decrypt(reqBody)
+			reqDecrypted, err := decrypter.Decrypt(reqBody)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				return
