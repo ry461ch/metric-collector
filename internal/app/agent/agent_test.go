@@ -11,12 +11,15 @@ import (
 )
 
 func TestBase(t *testing.T) {
-	agent := New(config.New())
+	cfg := config.New()
+	cfg.PollIntervalSec = 2
+	cfg.ReportIntervalSec = 3
+	agent := New(cfg)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go func() {
 		agent.Run(ctx)
 	}()
-	time.Sleep(2 * time.Second)
+	time.Sleep(7 * time.Second)
 	signal.NotifyContext(ctx, os.Interrupt)
 }
