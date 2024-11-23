@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgerrcode"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/resty.v1"
 
@@ -35,13 +36,13 @@ func mockRouter(handlers *Handlers) chi.Router {
 type InvalidStorage struct{}
 
 func (is *InvalidStorage) ExtractMetrics(ctx context.Context) ([]metrics.Metric, error) {
-	return nil, errors.New("INTERNAL_SERVER_ERROR")
+	return nil, errors.New(pgerrcode.ConnectionException)
 }
 func (is *InvalidStorage) SaveMetrics(ctx context.Context, metricList []metrics.Metric) error {
-	return errors.New("INTERNAL_SERVER_ERROR")
+	return errors.New(pgerrcode.ConnectionException)
 }
 func (is *InvalidStorage) GetMetric(ctx context.Context, metric *metrics.Metric) error {
-	return errors.New("INTERNAL_SERVER_ERROR")
+	return errors.New(pgerrcode.ConnectionException)
 }
 
 func TestPostTextGaugeHandler(t *testing.T) {

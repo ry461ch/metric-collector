@@ -63,7 +63,7 @@ func (h *Handlers) saveMetrics(ctx context.Context, metricList []metrics.Metric)
 		}
 		if pgerrcode.IsConnectionException(err.Error()) && i != 3 {
 			cancel()
-			time.Sleep(time.Second * time.Duration(i*2+1))
+			time.Sleep(time.Second * time.Duration(1))
 			continue
 		}
 		if err.Error() == "INVALID_METRIC" {
@@ -84,7 +84,7 @@ func (h *Handlers) getMetric(ctx context.Context, metric *metrics.Metric) error 
 		}
 		if pgerrcode.IsConnectionException(err.Error()) && i != 3 {
 			cancel()
-			time.Sleep(time.Second * time.Duration(i*2+1))
+			time.Sleep(time.Second * time.Duration(1))
 			continue
 		}
 		if err.Error() == "NOT_FOUND" || err.Error() == "INVALID_METRIC_TYPE" {
@@ -105,7 +105,7 @@ func (h *Handlers) extractMetrics(ctx context.Context) ([]metrics.Metric, error)
 		}
 		if pgerrcode.IsConnectionException(err.Error()) && i != 3 {
 			cancel()
-			time.Sleep(time.Second * time.Duration(i*2+1))
+			time.Sleep(time.Second * time.Duration(1))
 			continue
 		}
 		return nil, errors.New("INTERNAL_SERVER_ERROR")

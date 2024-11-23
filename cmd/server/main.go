@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"context"
+	"fmt"
 	_ "net/http/pprof"
 
 	"github.com/ry461ch/metric-collector/internal/app/server"

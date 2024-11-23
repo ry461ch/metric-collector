@@ -17,6 +17,7 @@ type Config struct {
 	Addr              netaddr.NetAddress `env:"ADDRESS"`
 	SecretKey         string             `env:"KEY"`
 	RateLimit         int64              `env:"RATE_LIMIT"`
+	CryptoKey         string             `env:"CRYPTO_KEY"`
 }
 
 // Парсинг аргументов и переменных окружения для создания конфига агента
@@ -34,6 +35,7 @@ func parseArgs(cfg *Config) {
 	flag.Int64Var(&cfg.PollIntervalSec, "p", 2, "Interval of polling metrics from runtime")
 	flag.StringVar(&cfg.SecretKey, "k", "", "Secret key")
 	flag.Int64Var(&cfg.RateLimit, "l", 1, "number of workers, which send metrics to the server")
+	flag.StringVar(&cfg.CryptoKey, "crypto-key", "", "Crypto key file")
 	flag.Parse()
 }
 
