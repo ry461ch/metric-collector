@@ -74,7 +74,7 @@ func New(cfg *config.Config) *Server {
 func (s *Server) Run(ctx context.Context) {
 	err := s.metricStorage.Initialize(ctx)
 	if s.rsaDecrypter != nil {
-		err := s.rsaDecrypter.Initialize(ctx)
+		err = s.rsaDecrypter.Initialize(ctx)
 		if err != nil {
 			logging.Logger.Errorln("Can't parse private key file")
 			return
