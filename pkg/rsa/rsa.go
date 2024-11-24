@@ -23,16 +23,12 @@ func NewEncrypter(secretKeyFile string) *RsaEncrypter {
 
 // Инициализация шифровальщика
 func (re *RsaEncrypter) Initialize(ctx context.Context) error {
-	file, err := os.Open(re.secretKeyFile)
+	var secretKey []byte
+	secretKey, err := os.ReadFile(re.secretKeyFile)
 	if err != nil {
 		return err
 	}
 
-	var secretKey []byte
-	_, err = file.Read(secretKey)
-	if err != nil {
-		return err
-	}
 	block, _ := pem.Decode(secretKey)
 	re.publicKey, err = x509.ParsePKCS1PublicKey(block.Bytes)
 	if err != nil {
@@ -65,13 +61,8 @@ func NewDecrypter(secretKeyFile string) *RsaDecrypter {
 
 // Инициализация расшифровщика
 func (rd *RsaDecrypter) Initialize(ctx context.Context) error {
-	file, err := os.Open(rd.secretKeyFile)
-	if err != nil {
-		return err
-	}
-
 	var secretKey []byte
-	_, err = file.Read(secretKey)
+	secretKey, err := os.ReadFile(rd.secretKeyFile)
 	if err != nil {
 		return err
 	}

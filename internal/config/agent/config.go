@@ -2,8 +2,10 @@
 package agentconfig
 
 import (
+	"encoding/json"
 	"flag"
 	"log"
+	"os"
 
 	"github.com/caarlos0/env/v11"
 
@@ -12,18 +14,39 @@ import (
 
 // Конфиг агента
 type Config struct {
-	ReportIntervalSec int64              `env:"REPORT_INTERVAL"`
-	PollIntervalSec   int64              `env:"POLL_INTERVAL"`
-	Addr              netaddr.NetAddress `env:"ADDRESS"`
+	ReportIntervalSec int64              `env:"REPORT_INTERVAL" json:"report_interval"`
+	PollIntervalSec   int64              `env:"POLL_INTERVAL" json:"poll_interval"`
+	Addr              netaddr.NetAddress `env:"ADDRESS" json:"address"`
 	SecretKey         string             `env:"KEY"`
 	RateLimit         int64              `env:"RATE_LIMIT"`
-	CryptoKey         string             `env:"CRYPTO_KEY"`
+	CryptoKey         string             `env:"CRYPTO_KEY" json:"crypto_key"`
+	Config            string             `env:"CONFIG"`
 }
 
 // Парсинг аргументов и переменных окружения для создания конфига агента
 func New() *Config {
 	addr := netaddr.NetAddress{Host: "localhost", Port: 8080}
 	cfg := &Config{ReportIntervalSec: 10, PollIntervalSec: 2, Addr: addr}
+
+	cfgFile := os.Getenv("CONFIG")
+	if cfgFile == "" {
+		flag.StringVar(&cfgFile, "config", "", "Config file")
+		flag.Parse()
+	}
+	if cfgFile != "" {
+		cfgData, err := os.ReadFile(cfgFile)
+		if err != nil {
+			log.Fatalf("Can't parse env variables: %s", err)
+			return nil
+		}
+
+		err = json.Unmarshal(cfgData, cfg)
+		if err != nil {
+			log.Fatalf("Can't parse env variables: %s", err)
+			return nil
+		}
+	}
+
 	parseArgs(cfg)
 	parseEnv(cfg)
 	return cfg

@@ -2,8 +2,10 @@
 package serverconfig
 
 import (
+	"encoding/json"
 	"flag"
 	"log"
+	"os"
 
 	"github.com/caarlos0/env/v11"
 
@@ -12,14 +14,15 @@ import (
 
 // Конфиг сервера
 type Config struct {
-	DBDsn           string             `env:"DATABASE_DSN"`
-	Addr            netaddr.NetAddress `env:"ADDRESS"`
+	DBDsn           string             `env:"DATABASE_DSN" json:"database_dsn"`
+	Addr            netaddr.NetAddress `env:"ADDRESS" json:"address"`
 	LogLevel        string             `env:"LOG_LEVEL"`
-	StoreInterval   int64              `env:"STORE_INTERVAL"`
-	FileStoragePath string             `env:"FILE_STORAGE_PATH"`
-	Restore         bool               `env:"RESTORE"`
+	StoreInterval   int64              `env:"STORE_INTERVAL" json:"store_interval"`
+	FileStoragePath string             `env:"FILE_STORAGE_PATH" json:"store_file"`
+	Restore         bool               `env:"RESTORE" json:"restore"`
 	SecretKey       string             `env:"KEY"`
-	CryptoKey       string             `env:"CRYPTO_KEY"`
+	CryptoKey       string             `env:"CRYPTO_KEY" json:"crypto_key"`
+	Config          string             `env:"CONFIG"`
 }
 
 // Парсинг аргументов и переменных окружения для создания конфига сервера
@@ -32,6 +35,26 @@ func New() *Config {
 		Restore:         true,
 		Addr:            addr,
 	}
+
+	cfgFile := os.Getenv("CONFIG")
+	if cfgFile == "" {
+		flag.StringVar(&cfgFile, "config", "", "Config file")
+		flag.Parse()
+	}
+	if cfgFile != "" {
+		cfgData, err := os.ReadFile(cfgFile)
+		if err != nil {
+			log.Fatalf("Can't parse env variables: %s", err)
+			return nil
+		}
+
+		err = json.Unmarshal(cfgData, cfg)
+		if err != nil {
+			log.Fatalf("Can't parse env variables: %s", err)
+			return nil
+		}
+	}
+
 	parseArgs(cfg)
 	parseEnv(cfg)
 	return cfg
