@@ -20,6 +20,6 @@ func TestBase(t *testing.T) {
 	go func() {
 		agent.Run(ctx)
 	}()
-	time.Sleep(7 * time.Second)
+	time.Sleep(3 * time.Second)
 	signal.NotifyContext(ctx, os.Interrupt)
 }

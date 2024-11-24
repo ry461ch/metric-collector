@@ -8,7 +8,10 @@ require (
 	gopkg.in/resty.v1 v1.12.0
 )
 
-require golang.org/x/exp/typeparams v0.0.0-20231108232855-2478ac86f678 // indirect
+require (
+	github.com/jessevdk/go-flags v1.6.1 // indirect
+	golang.org/x/exp/typeparams v0.0.0-20231108232855-2478ac86f678 // indirect
+)
 
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect

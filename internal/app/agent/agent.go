@@ -3,6 +3,7 @@ package agent
 
 import (
 	"context"
+	"log"
 	"os"
 	"os/signal"
 
@@ -17,7 +18,7 @@ import (
 type Agent struct {
 	metricSender    *sender.Sender
 	metricCollector *collector.Collector
-	rsaencypter     *rsa.RsaEncrypter
+	rsaEncypter     *rsa.RsaEncrypter
 }
 
 // Init Agent instance
@@ -34,14 +35,18 @@ func New(cfg *config.Config) *Agent {
 	return &Agent{
 		metricSender:    sender.New(encrypter, rsaEncrypter, cfg),
 		metricCollector: collector.New(cfg.PollIntervalSec),
-		rsaencypter:     rsaEncrypter,
+		rsaEncypter:     rsaEncrypter,
 	}
 }
 
 // Run agent work
 func (a *Agent) Run(ctx context.Context) {
-	if a.rsaencypter != nil {
-		a.rsaencypter.Initialize(ctx)
+	if a.rsaEncypter != nil {
+		err := a.rsaEncypter.Initialize(ctx)
+		if err != nil {
+			log.Fatal("Can't parse public key file")
+			return
+		}
 	}
 
 	collectorCtx, collectorCtxCancel := context.WithCancel(ctx)
