@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"strconv"
 	"sync"
+	"syscall"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -112,7 +113,7 @@ func (s *Server) Run(ctx context.Context) {
 	// wait for interrupting signal
 	go func() {
 		stop := make(chan os.Signal, 1)
-		signal.Notify(stop, os.Interrupt)
+		signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 		select {
 		case <-stop:
 		case <-ctx.Done():

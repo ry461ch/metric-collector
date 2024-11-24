@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"github.com/ry461ch/metric-collector/internal/app/agent/collector"
 	"github.com/ry461ch/metric-collector/internal/app/agent/sender"
@@ -59,7 +60,7 @@ func (a *Agent) Run(ctx context.Context) {
 	}()
 
 	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	select {
 	case <-stop:
 	case <-ctx.Done():
