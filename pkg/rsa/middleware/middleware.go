@@ -8,7 +8,7 @@ import (
 	"github.com/ry461ch/metric-collector/pkg/rsa"
 )
 
-// Проверка подписи пришедшего запроса и отправка зашифрованного сообщения клиенту
+// Проверка подписи пришедшего запроса
 func DecryptResponse(decrypter *rsa.RsaDecrypter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

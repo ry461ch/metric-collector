@@ -57,8 +57,8 @@ func (s *Sender) sendMetricsWorker(ctx context.Context, metricChannel <-chan met
 					restyRequest.SetHeader("HashSHA256", fmt.Sprintf("%x", reqBodyHash))
 				}
 				if s.rsaEncrypter != nil {
-					rsaBody, err := s.rsaEncrypter.Encrypt(reqBody)
-					if err != nil {
+					rsaBody, encryptErr := s.rsaEncrypter.Encrypt(reqBody)
+					if encryptErr != nil {
 						return fmt.Errorf("can't encrypt body")
 					}
 					restyRequest.SetBody(rsaBody)

@@ -10,17 +10,18 @@ import (
 	"os"
 )
 
-// Шифровальщик запросов
+// Шифровальщик запросов RSA
 type RsaEncrypter struct {
 	secretKeyFile string
 	publicKey     *rsa.PublicKey
 }
 
-// Создание инстанса шифровальщика
+// Создание инстанса шифровальщика RSA
 func NewEncrypter(secretKeyFile string) *RsaEncrypter {
 	return &RsaEncrypter{secretKeyFile: secretKeyFile}
 }
 
+// Инициализация шифровальщика
 func (re *RsaEncrypter) Initialize(ctx context.Context) error {
 	file, err := os.Open(re.secretKeyFile)
 	if err != nil {
@@ -40,26 +41,29 @@ func (re *RsaEncrypter) Initialize(ctx context.Context) error {
 	return nil
 }
 
+// Шифрование сообщения публичным ключом
 func (re *RsaEncrypter) Encrypt(sourceText []byte) ([]byte, error) {
-	sha256_hash := sha256.New()
+	sha256Hash := sha256.New()
 	var label []byte
-	encryptedText, err := rsa.EncryptOAEP(sha256_hash, rand.Reader, re.publicKey, sourceText, label)
+	encryptedText, err := rsa.EncryptOAEP(sha256Hash, rand.Reader, re.publicKey, sourceText, label)
 	if err != nil {
 		return nil, err
 	}
 	return encryptedText, nil
 }
 
+// Расшифровщик запросов RSA
 type RsaDecrypter struct {
 	secretKeyFile string
 	privateKey    *rsa.PrivateKey
 }
 
-// Создание инстанса шифровальщика
+// Создание инстанса расшифровщика
 func NewDecrypter(secretKeyFile string) *RsaDecrypter {
 	return &RsaDecrypter{secretKeyFile: secretKeyFile}
 }
 
+// Инициализация расшифровщика
 func (rd *RsaDecrypter) Initialize(ctx context.Context) error {
 	file, err := os.Open(rd.secretKeyFile)
 	if err != nil {
@@ -79,10 +83,11 @@ func (rd *RsaDecrypter) Initialize(ctx context.Context) error {
 	return nil
 }
 
+// Расшифровка сообщения приватным ключом
 func (rd *RsaDecrypter) Decrypt(encryptedText []byte) ([]byte, error) {
-	sha256_hash := sha256.New()
+	sha256Hash := sha256.New()
 	var label []byte
-	decryptedText, err := rsa.DecryptOAEP(sha256_hash, rand.Reader, rd.privateKey, encryptedText, label)
+	decryptedText, err := rsa.DecryptOAEP(sha256Hash, rand.Reader, rd.privateKey, encryptedText, label)
 	if err != nil {
 		return nil, err
 	}
