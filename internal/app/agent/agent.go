@@ -41,16 +41,16 @@ func New(cfg *config.Config) *Agent {
 
 // Run agent work
 func (a *Agent) Run(ctx context.Context) {
+	stopCtx, stopCancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stopCancel()
+
 	if a.rsaEncypter != nil {
-		err := a.rsaEncypter.Initialize(ctx)
+		err := a.rsaEncypter.Initialize(stopCtx)
 		if err != nil {
 			log.Fatal("Can't parse public key file")
 			return
 		}
 	}
-
-	stopCtx, stopCancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-	defer stopCancel()
 
 	collectorCtx, collectorCtxCancel := context.WithCancel(stopCtx)
 	defer collectorCtxCancel()
