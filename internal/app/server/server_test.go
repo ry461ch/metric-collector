@@ -2,8 +2,6 @@ package server
 
 import (
 	"context"
-	"os"
-	"os/signal"
 	"testing"
 	"time"
 
@@ -18,5 +16,4 @@ func TestBase(t *testing.T) {
 		server.Run(ctx)
 	}()
 	time.Sleep(2 * time.Second)
-	signal.NotifyContext(ctx, os.Interrupt)
 }

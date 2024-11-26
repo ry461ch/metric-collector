@@ -4,10 +4,8 @@ package server
 import (
 	"context"
 	"net/http"
-	"os"
 	"os/signal"
 	"strconv"
-	"sync"
 	"syscall"
 	"time"
 
@@ -72,9 +70,12 @@ func New(cfg *config.Config) *Server {
 
 // Run server
 func (s *Server) Run(ctx context.Context) {
-	err := s.metricStorage.Initialize(ctx)
+	stopCtx, stopCancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stopCancel()
+
+	err := s.metricStorage.Initialize(stopCtx)
 	if s.rsaDecrypter != nil {
-		err = s.rsaDecrypter.Initialize(ctx)
+		err = s.rsaDecrypter.Initialize(stopCtx)
 		if err != nil {
 			logging.Logger.Errorln("Can't parse private key file")
 			return
@@ -88,44 +89,28 @@ func (s *Server) Run(ctx context.Context) {
 	}
 
 	if s.cfg.Restore && s.cfg.DBDsn == "" {
-		s.fileWorker.ExportFromFile(ctx)
+		s.fileWorker.ExportFromFile(stopCtx)
 	}
-
-	var wg sync.WaitGroup
-	wg.Add(3)
 
 	// run server
 	go func() {
 		logging.Logger.Info("Server is running: ", s.cfg.Addr.String())
 		s.server.ListenAndServe()
-		wg.Done()
 	}()
 
 	// run crontasks
-	snapshotMakerCtx, snapshotMakerCtxCancel := context.WithCancel(ctx)
+	snapshotMakerCtx, snapshotMakerCtxCancel := context.WithCancel(stopCtx)
+	defer snapshotMakerCtxCancel()
 	go func() {
 		if s.cfg.StoreInterval != int64(0) {
 			s.snapshotMaker.Run(snapshotMakerCtx)
 		}
-		wg.Done()
 	}()
 
-	// wait for interrupting signal
-	go func() {
-		stop := make(chan os.Signal, 1)
-		signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-		select {
-		case <-stop:
-		case <-ctx.Done():
-		}
-		fileCtx, fileCtxCancel := context.WithTimeout(ctx, 1*time.Second)
-		s.fileWorker.ImportToFile(fileCtx)
-		fileCtxCancel()
-		s.server.Shutdown(ctx)
-		snapshotMakerCtxCancel()
-		wg.Done()
-	}()
-
-	wg.Wait()
-
+	<-stopCtx.Done()
+	fileCtx, fileCtxCancel := context.WithTimeout(ctx, 1*time.Second)
+	s.fileWorker.ImportToFile(fileCtx)
+	fileCtxCancel()
+	s.server.Shutdown(ctx)
+	logging.Logger.Infoln("Gracefull shutdown")
 }

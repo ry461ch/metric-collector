@@ -4,7 +4,6 @@ package agent
 import (
 	"context"
 	"log"
-	"os"
 	"os/signal"
 	"syscall"
 
@@ -50,8 +49,13 @@ func (a *Agent) Run(ctx context.Context) {
 		}
 	}
 
-	collectorCtx, collectorCtxCancel := context.WithCancel(ctx)
-	senderCtx, senderCtxCancel := context.WithCancel(ctx)
+	stopCtx, stopCancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stopCancel()
+
+	collectorCtx, collectorCtxCancel := context.WithCancel(stopCtx)
+	defer collectorCtxCancel()
+	senderCtx, senderCtxCancel := context.WithCancel(stopCtx)
+	defer senderCtxCancel()
 
 	metricChannel := a.metricCollector.CollectMetricsGenerator(collectorCtx)
 
@@ -59,12 +63,6 @@ func (a *Agent) Run(ctx context.Context) {
 		a.metricSender.Run(senderCtx, metricChannel)
 	}()
 
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-	select {
-	case <-stop:
-	case <-ctx.Done():
-	}
-	collectorCtxCancel()
-	senderCtxCancel()
+	<-stopCtx.Done()
+	log.Println("Gracefull shutdown")
 }

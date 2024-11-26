@@ -2,8 +2,6 @@ package agent
 
 import (
 	"context"
-	"os"
-	"os/signal"
 	"testing"
 	"time"
 
@@ -21,5 +19,4 @@ func TestBase(t *testing.T) {
 		agent.Run(ctx)
 	}()
 	time.Sleep(3 * time.Second)
-	signal.NotifyContext(ctx, os.Interrupt)
 }
