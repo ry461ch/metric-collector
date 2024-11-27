@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	_ "net/http/pprof"
 
@@ -19,5 +20,5 @@ func main() {
 	fmt.Printf("Build date: %s\n", buildDate)
 	fmt.Printf("Build commit: %s\n", buildCommit)
 	server := server.New(config.New())
-	server.Run()
+	server.Run(context.Background())
 }

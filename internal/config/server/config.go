@@ -2,32 +2,29 @@
 package serverconfig
 
 import (
-	// "crypto/rand"
-	// "encoding/hex"
-	"flag"
+	"encoding/json"
 	"log"
+	"os"
+	"strings"
 
 	"github.com/caarlos0/env/v11"
+	"github.com/jessevdk/go-flags"
 
 	"github.com/ry461ch/metric-collector/internal/models/netaddr"
 )
 
 // Конфиг сервера
 type Config struct {
-	DBDsn           string             `env:"DATABASE_DSN"`
-	Addr            netaddr.NetAddress `env:"ADDRESS"`
-	LogLevel        string             `env:"LOG_LEVEL"`
-	StoreInterval   int64              `env:"STORE_INTERVAL"`
-	FileStoragePath string             `env:"FILE_STORAGE_PATH"`
-	Restore         bool               `env:"RESTORE"`
-	SecretKey       string             `env:"KEY"`
+	DBDsn           string             `short:"d" env:"DATABASE_DSN" json:"database_dsn"`
+	Addr            netaddr.NetAddress `short:"a" env:"ADDRESS" json:"address"`
+	LogLevel        string             `short:"l" env:"LOG_LEVEL"`
+	StoreInterval   int64              `short:"i" env:"STORE_INTERVAL" json:"store_interval"`
+	FileStoragePath string             `short:"f" env:"FILE_STORAGE_PATH" json:"store_file"`
+	Restore         bool               `short:"r" env:"RESTORE" json:"restore"`
+	SecretKey       string             `short:"k" env:"KEY"`
+	CryptoKey       string             `long:"crypto-key" env:"CRYPTO_KEY" json:"crypto_key"`
+	Config          string             `long:"config" short:"c" env:"CONFIG"`
 }
-
-// func generateKey() string {
-// 	defaultSecretKey := make([]byte, 16)
-// 	rand.Read(defaultSecretKey)
-// 	return hex.EncodeToString(defaultSecretKey)
-// }
 
 // Парсинг аргументов и переменных окружения для создания конфига сервера
 func New() *Config {
@@ -39,20 +36,42 @@ func New() *Config {
 		Restore:         true,
 		Addr:            addr,
 	}
+
+	args := os.Args[1:]
+	if len(args) == 0 || strings.Contains(args[1], "test") {
+		return cfg
+	}
+
+	cfgFile := os.Getenv("CONFIG")
 	parseArgs(cfg)
+	if cfgFile == "" && cfg.Config != "" {
+		cfgFile = cfg.Config
+	}
+
+	if cfgFile != "" {
+		cfgData, err := os.ReadFile(cfgFile)
+		if err != nil {
+			log.Fatalf("Can't parse env variables: %s", err)
+			return nil
+		}
+
+		err = json.Unmarshal(cfgData, cfg)
+		if err != nil {
+			log.Fatalf("Can't parse env variables: %s", err)
+			return nil
+		}
+	}
+
 	parseEnv(cfg)
+	parseArgs(cfg)
 	return cfg
 }
 
 func parseArgs(cfg *Config) {
-	flag.Var(&cfg.Addr, "a", "Net address host:port")
-	flag.StringVar(&cfg.LogLevel, "l", "INFO", "Log level")
-	flag.StringVar(&cfg.DBDsn, "d", "", "database connection string")
-	flag.Int64Var(&cfg.StoreInterval, "i", 10, "Store interval seconds")
-	flag.StringVar(&cfg.FileStoragePath, "f", "/tmp/metrics-db.json", "File storage path")
-	flag.BoolVar(&cfg.Restore, "r", true, "Load data from fileStoragePath when server is starting")
-	flag.StringVar(&cfg.SecretKey, "k", "", "Secret key")
-	flag.Parse()
+	_, err := flags.Parse(cfg)
+	if err != nil {
+		log.Fatalf("Can't parse env variables: %s", err)
+	}
 }
 
 func parseEnv(cfg *Config) {

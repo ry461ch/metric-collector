@@ -4,10 +4,9 @@ package server
 import (
 	"context"
 	"net/http"
-	"os"
 	"os/signal"
 	"strconv"
-	"sync"
+	"syscall"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -21,6 +20,7 @@ import (
 	pgstorage "github.com/ry461ch/metric-collector/internal/storage/postgres"
 	"github.com/ry461ch/metric-collector/pkg/encrypt"
 	"github.com/ry461ch/metric-collector/pkg/logging"
+	"github.com/ry461ch/metric-collector/pkg/rsa"
 )
 
 // Сервер для сбора и сохранения метрик
@@ -30,6 +30,7 @@ type Server struct {
 	fileWorker    *fileworker.FileWorker
 	snapshotMaker *snapshotmaker.SnapshotMaker
 	server        *http.Server
+	rsaDecrypter  *rsa.RsaDecrypter
 }
 
 func getStorage(cfg *config.Config) Storage {
@@ -44,11 +45,16 @@ func getStorage(cfg *config.Config) Storage {
 func New(cfg *config.Config) *Server {
 	logging.Initialize(cfg.LogLevel)
 
+	var rsaDecrypter *rsa.RsaDecrypter
+	if cfg.CryptoKey != "" {
+		rsaDecrypter = rsa.NewDecrypter(cfg.CryptoKey)
+	}
+
 	// initialize storage
 	metricStorage := getStorage(cfg)
 	fileWorker := fileworker.New(cfg.FileStoragePath, metricStorage)
 	handleService := handlers.New(cfg, metricStorage, fileWorker)
-	handler := router.New(handleService, encrypt.New(cfg.SecretKey))
+	handler := router.New(handleService, encrypt.New(cfg.SecretKey), rsaDecrypter)
 	snapshotMaker := snapshotmaker.New(cfg.StoreInterval, fileWorker)
 	server := &http.Server{Addr: cfg.Addr.Host + ":" + strconv.FormatInt(cfg.Addr.Port, 10), Handler: handler}
 
@@ -58,12 +64,24 @@ func New(cfg *config.Config) *Server {
 		fileWorker:    fileWorker,
 		snapshotMaker: snapshotMaker,
 		server:        server,
+		rsaDecrypter:  rsaDecrypter,
 	}
 }
 
 // Run server
-func (s *Server) Run() {
-	err := s.metricStorage.Initialize(context.Background())
+func (s *Server) Run(ctx context.Context) {
+	stopCtx, stopCancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stopCancel()
+
+	err := s.metricStorage.Initialize(stopCtx)
+	if s.rsaDecrypter != nil {
+		err = s.rsaDecrypter.Initialize(stopCtx)
+		if err != nil {
+			logging.Logger.Errorln("Can't parse private key file")
+			return
+		}
+	}
+
 	if err != nil {
 		logging.Logger.Warnln("Db wasn't initialized")
 	} else if externalStorage, ok := s.metricStorage.(ExternalStorage); ok {
@@ -71,40 +89,28 @@ func (s *Server) Run() {
 	}
 
 	if s.cfg.Restore && s.cfg.DBDsn == "" {
-		s.fileWorker.ExportFromFile(context.Background())
+		s.fileWorker.ExportFromFile(stopCtx)
 	}
-
-	var wg sync.WaitGroup
-	wg.Add(3)
 
 	// run server
 	go func() {
 		logging.Logger.Info("Server is running: ", s.cfg.Addr.String())
 		s.server.ListenAndServe()
-		wg.Done()
 	}()
 
 	// run crontasks
-	snapshotMakerCtx, snapshotMakerCtxCancel := context.WithCancel(context.Background())
+	snapshotMakerCtx, snapshotMakerCtxCancel := context.WithCancel(stopCtx)
+	defer snapshotMakerCtxCancel()
 	go func() {
 		if s.cfg.StoreInterval != int64(0) {
 			s.snapshotMaker.Run(snapshotMakerCtx)
 		}
-		wg.Done()
 	}()
 
-	// wait for interrupting signal
-	go func() {
-		stop := make(chan os.Signal, 1)
-		signal.Notify(stop, os.Interrupt)
-		<-stop
-		fileCtx, fileCtxCancel := context.WithTimeout(context.Background(), 1*time.Second)
-		s.fileWorker.ImportToFile(fileCtx)
-		fileCtxCancel()
-		s.server.Shutdown(context.Background())
-		snapshotMakerCtxCancel()
-		wg.Done()
-	}()
-
-	wg.Wait()
+	<-stopCtx.Done()
+	fileCtx, fileCtxCancel := context.WithTimeout(ctx, 1*time.Second)
+	s.fileWorker.ImportToFile(fileCtx)
+	fileCtxCancel()
+	s.server.Shutdown(ctx)
+	logging.Logger.Infoln("Gracefull shutdown")
 }

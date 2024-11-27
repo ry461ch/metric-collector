@@ -12,16 +12,21 @@ import (
 	requestlogger "github.com/ry461ch/metric-collector/pkg/logging/middleware"
 	"github.com/ry461ch/metric-collector/pkg/middlewares/compressor"
 	"github.com/ry461ch/metric-collector/pkg/middlewares/contenttypes"
+	"github.com/ry461ch/metric-collector/pkg/rsa"
+	rsamiddleware "github.com/ry461ch/metric-collector/pkg/rsa/middleware"
 )
 
 // Router initialization
-func New(mHandlers metricHandlers, encrypter *encrypt.Encrypter) chi.Router {
+func New(mHandlers metricHandlers, encrypter *encrypt.Encrypter, rsaEncrypter *rsa.RsaDecrypter) chi.Router {
 	r := chi.NewRouter()
 	r.Use(
 		requestlogger.WithLogging,
 		compressor.GzipHandle,
 		encryptmiddleware.CheckRequestAndEncryptResponse(encrypter),
 	)
+	if rsaEncrypter != nil {
+		r.Use(rsamiddleware.DecryptResponse(rsaEncrypter))
+	}
 
 	r.Route("/updates/", func(r chi.Router) {
 		r.Use(contenttypes.ValidateJSONContentType)
