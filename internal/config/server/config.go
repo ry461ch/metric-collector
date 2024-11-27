@@ -21,6 +21,7 @@ type Config struct {
 	StoreInterval   int64              `short:"i" env:"STORE_INTERVAL" json:"store_interval"`
 	FileStoragePath string             `short:"f" env:"FILE_STORAGE_PATH" json:"store_file"`
 	Restore         bool               `short:"r" env:"RESTORE" json:"restore"`
+	TrustedSubnet   string             `short:"t" env:"TRUSTED_SUBNET" json:"trusted_subnet"`
 	SecretKey       string             `short:"k" env:"KEY"`
 	CryptoKey       string             `long:"crypto-key" env:"CRYPTO_KEY" json:"crypto_key"`
 	Config          string             `long:"config" short:"c" env:"CONFIG"`

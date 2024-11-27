@@ -23,14 +23,16 @@ type Sender struct {
 	cfg          *config.Config
 	encrypter    *encrypt.Encrypter
 	rsaEncrypter *rsa.RsaEncrypter
+	ip           string
 }
 
 // Init Metric Sender
-func New(encrypter *encrypt.Encrypter, rsaEncrypter *rsa.RsaEncrypter, cfg *config.Config) *Sender {
+func New(encrypter *encrypt.Encrypter, rsaEncrypter *rsa.RsaEncrypter, cfg *config.Config, ip string) *Sender {
 	return &Sender{
 		cfg:          cfg,
 		encrypter:    encrypter,
 		rsaEncrypter: rsaEncrypter,
+		ip:           ip,
 	}
 }
 
@@ -52,6 +54,9 @@ func (s *Sender) sendMetricsWorker(ctx context.Context, metricChannel <-chan met
 				}
 
 				restyRequest := client.R().SetHeader("Content-Type", "application/json")
+				if s.ip != "" {
+					restyRequest.SetHeader("X-Real-IP", s.ip)
+				}
 				if s.encrypter != nil {
 					reqBodyHash := s.encrypter.EncryptMessage(reqBody)
 					restyRequest.SetHeader("HashSHA256", fmt.Sprintf("%x", reqBodyHash))

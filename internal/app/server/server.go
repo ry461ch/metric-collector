@@ -19,6 +19,7 @@ import (
 	memstorage "github.com/ry461ch/metric-collector/internal/storage/memory"
 	pgstorage "github.com/ry461ch/metric-collector/internal/storage/postgres"
 	"github.com/ry461ch/metric-collector/pkg/encrypt"
+	"github.com/ry461ch/metric-collector/pkg/ipchecker"
 	"github.com/ry461ch/metric-collector/pkg/logging"
 	"github.com/ry461ch/metric-collector/pkg/rsa"
 )
@@ -50,11 +51,16 @@ func New(cfg *config.Config) *Server {
 		rsaDecrypter = rsa.NewDecrypter(cfg.CryptoKey)
 	}
 
+	var ipChecker *ipchecker.IPChecker
+	if cfg.TrustedSubnet != "" {
+		ipChecker = ipchecker.New(cfg.TrustedSubnet)
+	}
+
 	// initialize storage
 	metricStorage := getStorage(cfg)
 	fileWorker := fileworker.New(cfg.FileStoragePath, metricStorage)
 	handleService := handlers.New(cfg, metricStorage, fileWorker)
-	handler := router.New(handleService, encrypt.New(cfg.SecretKey), rsaDecrypter)
+	handler := router.New(handleService, encrypt.New(cfg.SecretKey), rsaDecrypter, ipChecker)
 	snapshotMaker := snapshotmaker.New(cfg.StoreInterval, fileWorker)
 	server := &http.Server{Addr: cfg.Addr.Host + ":" + strconv.FormatInt(cfg.Addr.Port, 10), Handler: handler}
 
