@@ -14,7 +14,7 @@ func CheckRequesterIP(ipChecker *ipchecker.IPChecker) func(http.Handler) http.Ha
 			ip := req.Header.Get("X-Real-IP")
 			realIP := net.ParseIP(ip)
 			if realIP == nil || !ipChecker.Contains(&realIP) {
-				res.WriteHeader(http.StatusBadRequest)
+				res.WriteHeader(http.StatusForbidden)
 				return
 			}
 

@@ -21,14 +21,16 @@ import (
 // Router initialization
 func New(mHandlers metricHandlers, encrypter *encrypt.Encrypter, rsaDecrypter *rsa.RsaDecrypter, ipChecker *ipchecker.IPChecker) chi.Router {
 	r := chi.NewRouter()
+	r.Use(requestlogger.WithLogging)
+	if ipChecker != nil {
+		r.Use(ipcheckermiddleware.CheckRequesterIP(ipChecker))
+	}
 	r.Use(
-		requestlogger.WithLogging,
-		ipcheckermiddleware.CheckRequesterIP(ipChecker),
 		compressor.GzipHandle,
 		encryptmiddleware.CheckRequestAndEncryptResponse(encrypter),
 	)
 	if rsaDecrypter != nil {
-		r.Use(rsamiddleware.DecryptResponse(rsaDecrypter))
+		r.Use(rsamiddleware.DecryptRequest(rsaDecrypter))
 	}
 
 	r.Route("/updates/", func(r chi.Router) {

@@ -9,7 +9,7 @@ import (
 )
 
 // Проверка подписи пришедшего запроса
-func DecryptResponse(decrypter *rsa.RsaDecrypter) func(http.Handler) http.Handler {
+func DecryptRequest(decrypter *rsa.RsaDecrypter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var buf bytes.Buffer

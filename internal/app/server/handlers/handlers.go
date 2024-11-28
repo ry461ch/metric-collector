@@ -59,7 +59,7 @@ func (h *Handlers) saveMetrics(ctx context.Context, metricList []metrics.Metric)
 		defer cancel()
 		err := h.metricStorage.SaveMetrics(DBCtx, metricList)
 		if err == nil {
-			return nil
+			break
 		}
 		if pgerrcode.IsConnectionException(err.Error()) && i != 1 {
 			cancel()
@@ -80,7 +80,7 @@ func (h *Handlers) getMetric(ctx context.Context, metric *metrics.Metric) error 
 		defer cancel()
 		err := h.metricStorage.GetMetric(DBCtx, metric)
 		if err == nil {
-			return nil
+			break
 		}
 		if pgerrcode.IsConnectionException(err.Error()) && i != 1 {
 			cancel()
