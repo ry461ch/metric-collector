@@ -21,6 +21,7 @@ type Config struct {
 	SecretKey         string             `short:"k" env:"KEY"`
 	RateLimit         int64              `short:"l" env:"RATE_LIMIT"`
 	CryptoKey         string             `long:"crypto-key" env:"CRYPTO_KEY" json:"crypto_key"`
+	UseGRPC           bool               `long:"grpc" env:"USE_GRPC" json:"use_grpc"`
 	Config            string             `long:"config" short:"c" env:"CONFIG"`
 }
 

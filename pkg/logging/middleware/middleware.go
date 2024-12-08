@@ -2,8 +2,12 @@ package requestlogger
 
 import (
 	"time"
-
+	// "context"
 	"net/http"
+
+	// "google.golang.org/grpc"
+	// "google.golang.org/grpc/metadata"
+	// "google.golang.org/grpc/status"
 
 	"github.com/ry461ch/metric-collector/pkg/logging"
 )
@@ -61,3 +65,20 @@ func WithLogging(h http.Handler) http.Handler {
 	}
 	return http.HandlerFunc(logFn)
 }
+
+// func StreamInterceptor(ctx context.Context, req interface{}, info *grpc.StreamServerInterceptor, handler grpc.StreamHandler) (interface{}, error) {
+//     var token string
+//     if md, ok := metadata.FromIncomingContext(ctx); ok {
+//         values := md.Get("token")
+//         if len(values) > 0 {
+//             token = values[0]
+//         }
+//     }
+//     if len(token) == 0 {
+//         return nil, status.Error(codes.Unauthenticated, "missing token")
+//     }
+//     if token != SecretToken {
+//         return nil, status.Error(codes.Unauthenticated, "invalid token")
+//     }
+//     return handler(ctx, req)
+// }
