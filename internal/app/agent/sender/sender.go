@@ -109,7 +109,6 @@ func (s *Sender) sendGRPCMetricsWorker(ctx context.Context, metricChannel <-chan
 				err = stream.Send(metricForSend)
 				if err != nil {
 					log.Printf("Error while sending metric: %s", err.Error())
-					break
 				}
 			default:
 				if !isStreamOpened {

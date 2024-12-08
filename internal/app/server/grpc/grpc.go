@@ -70,9 +70,9 @@ func (mgs *MetricsGRPCServer) PostMetrics(srv grpc.ClientStreamingServer[pb.Metr
 		metricModel := mgs.convert(metric)
 		if metricModel == nil {
 			logging.Logger.Errorf("Failed while handling metric %s", metric.Id)
+		} else {
+			metricList = append(metricList, *metricModel)
 		}
-
-		metricList = append(metricList, *metricModel)
 	}
 
 	err := mgs.metricStorage.SaveMetrics(ctx, metricList)
