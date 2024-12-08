@@ -4,6 +4,7 @@ package agent
 import (
 	"context"
 	"log"
+	"net"
 	"os/signal"
 	"syscall"
 
@@ -32,11 +33,31 @@ func New(cfg *config.Config) *Agent {
 		rsaEncrypter = rsa.NewEncrypter(cfg.CryptoKey)
 	}
 
+	localIP := GetLocalIP()
+	log.Printf("local IP: %s", localIP)
+
 	return &Agent{
-		metricSender:    sender.New(encrypter, rsaEncrypter, cfg),
+		metricSender:    sender.New(encrypter, rsaEncrypter, cfg, localIP),
 		metricCollector: collector.New(cfg.PollIntervalSec),
 		rsaEncypter:     rsaEncrypter,
 	}
+}
+
+// This function I get from stackOverflow https://stackoverflow.com/questions/23558425/how-do-i-get-the-local-ip-address-in-go
+func GetLocalIP() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return ""
+	}
+	for _, address := range addrs {
+		// check the address type and if it is not a loopback the display it
+		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				return ipnet.IP.To4().String()
+			}
+		}
+	}
+	return ""
 }
 
 // Run agent work

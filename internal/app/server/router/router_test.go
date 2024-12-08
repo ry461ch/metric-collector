@@ -295,7 +295,7 @@ func TestRouter(t *testing.T) {
 	handlers := NewMockHandlers()
 	encrypter := encrypt.New("test")
 
-	router := New(&handlers, encrypter, nil)
+	router := New(&handlers, encrypter, nil, nil)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 

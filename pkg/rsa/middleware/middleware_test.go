@@ -1,16 +1,36 @@
-package rsa
+package rsamiddleware
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/resty.v1"
+
+	rsacomponent "github.com/ry461ch/metric-collector/pkg/rsa"
 )
+
+func mockRouter(t *testing.T, decrypter *rsacomponent.RsaDecrypter) chi.Router {
+	router := chi.NewRouter()
+	router.Use(DecryptRequest(decrypter))
+	router.Post("/*", func(res http.ResponseWriter, req *http.Request) {
+		var buf bytes.Buffer
+		buf.ReadFrom(req.Body)
+		data := buf.Bytes()
+		assert.Equal(t, []byte("Test"), data, "Invalid data")
+		res.WriteHeader(http.StatusOK)
+	})
+	return router
+}
 
 func TestBase(t *testing.T) {
 	privateKey, _ := rsa.GenerateKey(rand.Reader, 4096)
@@ -41,29 +61,24 @@ func TestBase(t *testing.T) {
 	)
 	publicKeyFile.Write(publicKeyBytes)
 
-	encrypter := NewEncrypter(publicKeyPath)
+	encrypter := rsacomponent.NewEncrypter(publicKeyPath)
 	encrypter.Initialize(context.TODO())
-	decrypter := NewDecrypter(privateKeyPath)
+	decrypter := rsacomponent.NewDecrypter(privateKeyPath)
 	decrypter.Initialize(context.TODO())
+
+	router := mockRouter(t, decrypter)
+	srv := httptest.NewServer(router)
+	defer srv.Close()
 
 	reqStr := "Test"
 	encryptedStr, _ := encrypter.Encrypt([]byte(reqStr))
 	decryptedStr, _ := decrypter.Decrypt(encryptedStr)
 	assert.Equal(t, []byte(reqStr), decryptedStr)
-}
 
-func TestInvalid(t *testing.T) {
-	invalidKeyPath := "/tmp/invalid.test"
+	client := resty.New()
+	resp, _ := client.R().SetBody(encryptedStr).Post(srv.URL + "/")
+	assert.Equal(t, http.StatusOK, resp.StatusCode(), "Invalid status code")
 
-	invalidKeyFile, _ := os.OpenFile(invalidKeyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
-	defer invalidKeyFile.Close()
-	invalidKeyFile.Write([]byte("invalid"))
-
-	encrypter := NewEncrypter(invalidKeyPath)
-	err := encrypter.Initialize(context.TODO())
-	assert.Error(t, err, "Not an error")
-
-	decrypter := NewDecrypter(invalidKeyPath)
-	err = decrypter.Initialize(context.TODO())
-	assert.Error(t, err, "Not an error")
+	resp, _ = client.R().SetBody(reqStr).Post(srv.URL + "/")
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode(), "Invalid status code")
 }

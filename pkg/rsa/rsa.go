@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"os"
 )
 
@@ -30,6 +31,9 @@ func (re *RsaEncrypter) Initialize(ctx context.Context) error {
 	}
 
 	block, _ := pem.Decode(secretKey)
+	if block == nil {
+		return errors.New("invalid pem key")
+	}
 	re.publicKey, err = x509.ParsePKCS1PublicKey(block.Bytes)
 	if err != nil {
 		return err
@@ -67,6 +71,9 @@ func (rd *RsaDecrypter) Initialize(ctx context.Context) error {
 		return err
 	}
 	block, _ := pem.Decode(secretKey)
+	if block == nil {
+		return errors.New("invalid pem key")
+	}
 	rd.privateKey, err = x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {
 		return err

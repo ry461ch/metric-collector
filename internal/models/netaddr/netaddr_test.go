@@ -29,6 +29,7 @@ func TestNetAddrBase(t *testing.T) {
 			}
 			assert.Equal(t, tc.expectedAddr.Host, resAddr.Host, "hosts mismatch")
 			assert.Equal(t, tc.expectedAddr.Port, resAddr.Port, "ports mismatch")
+			assert.Equal(t, tc.expectedAddr.String(), resAddr.String(), "addr mismatch")
 		})
 	}
 }

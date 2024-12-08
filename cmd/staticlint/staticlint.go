@@ -104,7 +104,5 @@ func main() {
 		}
 	}
 
-	multichecker.Main(
-		mychecks...,
-	)
+	multichecker.Main(mychecks...)
 }
