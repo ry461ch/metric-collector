@@ -2,6 +2,8 @@ package metricsgrpc
 
 import (
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"io"
 
 	config "github.com/ry461ch/metric-collector/internal/config/server"
@@ -10,6 +12,7 @@ import (
 	"github.com/ry461ch/metric-collector/pkg/logging"
 )
 
+// Создание инстанса grpc-сервера
 func New(config *config.Config, metricStorage Storage, fileWorker FileWorker) *MetricsGRPCServer {
 	return &MetricsGRPCServer{
 		metricStorage: metricStorage,
@@ -18,6 +21,7 @@ func New(config *config.Config, metricStorage Storage, fileWorker FileWorker) *M
 	}
 }
 
+// Grpc сервер
 type MetricsGRPCServer struct {
 	pb.UnimplementedMetricsServer
 
@@ -48,6 +52,7 @@ func (mgs *MetricsGRPCServer) convert(m *pb.Metric) *metrics.Metric {
 	return &res
 }
 
+// Единственная ручка обработки запросов у grpc-сервера
 func (mgs *MetricsGRPCServer) PostMetrics(srv grpc.ClientStreamingServer[pb.Metric, pb.EmptyObject]) error {
 	ctx := srv.Context()
 	metricList := []metrics.Metric{}
@@ -59,7 +64,7 @@ func (mgs *MetricsGRPCServer) PostMetrics(srv grpc.ClientStreamingServer[pb.Metr
 
 		if err != nil || metric == nil {
 			logging.Logger.Errorf("Failed while receiving metric %s", err.Error())
-			return err
+			return status.Error(codes.DataLoss, "Can't parse received metric")
 		}
 
 		metricModel := mgs.convert(metric)
@@ -67,14 +72,14 @@ func (mgs *MetricsGRPCServer) PostMetrics(srv grpc.ClientStreamingServer[pb.Metr
 			logging.Logger.Errorf("Failed while handling metric %s", metric.Id)
 		}
 
-		logging.Logger.Infof("Got metric %s", metricModel.ID)
 		metricList = append(metricList, *metricModel)
 	}
 
 	err := mgs.metricStorage.SaveMetrics(ctx, metricList)
 	if err != nil {
+		logging.Logger.Errorf("%s", err.Error())
 		srv.SendAndClose(&pb.EmptyObject{})
-		return err
+		return status.Error(codes.Internal, "Can't save metrics")
 	}
 
 	srv.SendAndClose(&pb.EmptyObject{})

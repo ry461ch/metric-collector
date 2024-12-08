@@ -17,6 +17,10 @@ message Metric {
 
 message EmptyObject {}
 
+message EncryptedObject {
+  bytes data = 1;
+}
+
 service Metrics {
   rpc PostMetrics(stream Metric) returns (EmptyObject);
 }

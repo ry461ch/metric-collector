@@ -1,13 +1,11 @@
 package requestlogger
 
 import (
-	"time"
-	// "context"
 	"net/http"
+	"time"
 
-	// "google.golang.org/grpc"
-	// "google.golang.org/grpc/metadata"
-	// "google.golang.org/grpc/status"
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ry461ch/metric-collector/pkg/logging"
 )
@@ -22,7 +20,24 @@ type (
 		http.ResponseWriter
 		responseData *responseData
 	}
+
+	loggingStreamServer struct {
+		grpc.ServerStream
+		size int
+	}
 )
+
+// Переопределение метода RecvMsg для grpc миддлвари логгера
+func (lss *loggingStreamServer) RecvMsg(req interface{}) error {
+	err := lss.ServerStream.RecvMsg(req)
+	if err != nil {
+		return err
+	}
+	if msg, ok := req.(proto.Message); ok {
+		lss.size += proto.Size(msg)
+	}
+	return nil
+}
 
 // Переопределение метода Write для миддлвари логгера
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
@@ -56,6 +71,7 @@ func WithLogging(h http.Handler) http.Handler {
 		duration := time.Since(start)
 
 		logging.Logger.Infoln(
+			"type", "http",
 			"uri", r.RequestURI,
 			"method", r.Method,
 			"status", responseData.status,
@@ -66,19 +82,26 @@ func WithLogging(h http.Handler) http.Handler {
 	return http.HandlerFunc(logFn)
 }
 
-// func StreamInterceptor(ctx context.Context, req interface{}, info *grpc.StreamServerInterceptor, handler grpc.StreamHandler) (interface{}, error) {
-//     var token string
-//     if md, ok := metadata.FromIncomingContext(ctx); ok {
-//         values := md.Get("token")
-//         if len(values) > 0 {
-//             token = values[0]
-//         }
-//     }
-//     if len(token) == 0 {
-//         return nil, status.Error(codes.Unauthenticated, "missing token")
-//     }
-//     if token != SecretToken {
-//         return nil, status.Error(codes.Unauthenticated, "invalid token")
-//     }
-//     return handler(ctx, req)
-// }
+// Interceptor логирования запросов grpc
+func LoggingStreamServerInterceptor(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	start := time.Now()
+
+	loggingStreamServer := &loggingStreamServer{
+		ServerStream: ss,
+		size:         0,
+	}
+
+	err := handler(srv, loggingStreamServer)
+	if err != nil {
+		logging.Logger.Errorln(err)
+	}
+
+	duration := time.Since(start)
+	logging.Logger.Infoln(
+		"type", "grpc",
+		"method", info.FullMethod,
+		"duration", duration,
+		"size", loggingStreamServer.size,
+	)
+	return err
+}

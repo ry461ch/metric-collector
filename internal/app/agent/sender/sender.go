@@ -18,7 +18,9 @@ import (
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
 	pb "github.com/ry461ch/metric-collector/internal/proto"
 	"github.com/ry461ch/metric-collector/pkg/encrypt"
+	ipcheckermiddleware "github.com/ry461ch/metric-collector/pkg/ipchecker/middleware"
 	"github.com/ry461ch/metric-collector/pkg/rsa"
+	rsamiddleware "github.com/ry461ch/metric-collector/pkg/rsa/middleware"
 )
 
 // Sender для отправки метрик на сервер
@@ -69,7 +71,14 @@ func New(encrypter *encrypt.Encrypter, rsaEncrypter *rsa.RsaEncrypter, cfg *conf
 
 func (s *Sender) sendGRPCMetricsWorker(ctx context.Context, metricChannel <-chan metrics.Metric) func() error {
 	return func() error {
-		conn, err := grpc.NewClient(":3200", grpc.WithTransportCredentials(insecure.NewCredentials()))
+		var interceptors []grpc.StreamClientInterceptor
+		if s.ip != "" {
+			interceptors = append(interceptors, ipcheckermiddleware.SetIPGRPCClientStreamInterceptor(s.ip))
+		}
+		if s.rsaEncrypter != nil {
+			interceptors = append(interceptors, rsamiddleware.EncryptStreamClientInterceptor(s.rsaEncrypter))
+		}
+		conn, err := grpc.NewClient(":3200", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithChainStreamInterceptor(interceptors...))
 		if err != nil {
 			return fmt.Errorf("server is not available")
 		}
@@ -99,10 +108,9 @@ func (s *Sender) sendGRPCMetricsWorker(ctx context.Context, metricChannel <-chan
 				}
 				err = stream.Send(metricForSend)
 				if err != nil {
-					log.Println("Error while sending metric")
+					log.Printf("Error while sending metric: %s", err.Error())
 					break
 				}
-				log.Printf("Successfully sent %s", metricForSend.Id)
 			default:
 				if !isStreamOpened {
 					break

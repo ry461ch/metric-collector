@@ -24,8 +24,11 @@ import (
 	pgstorage "github.com/ry461ch/metric-collector/internal/storage/postgres"
 	"github.com/ry461ch/metric-collector/pkg/encrypt"
 	"github.com/ry461ch/metric-collector/pkg/ipchecker"
+	ipcheckermiddleware "github.com/ry461ch/metric-collector/pkg/ipchecker/middleware"
 	"github.com/ry461ch/metric-collector/pkg/logging"
+	"github.com/ry461ch/metric-collector/pkg/logging/middleware"
 	"github.com/ry461ch/metric-collector/pkg/rsa"
+	rsamiddleware "github.com/ry461ch/metric-collector/pkg/rsa/middleware"
 )
 
 // Сервер для сбора и сохранения метрик
@@ -37,6 +40,7 @@ type Server struct {
 	server        *http.Server
 	rsaDecrypter  *rsa.RsaDecrypter
 	grpcServer    *metricsgrpc.MetricsGRPCServer
+	ipChecker     *ipchecker.IPChecker
 }
 
 func getStorage(cfg *config.Config) Storage {
@@ -78,6 +82,7 @@ func New(cfg *config.Config) *Server {
 		server:        server,
 		rsaDecrypter:  rsaDecrypter,
 		grpcServer:    grpcServer,
+		ipChecker:     ipChecker,
 	}
 }
 
@@ -117,7 +122,15 @@ func (s *Server) Run(ctx context.Context) {
 		logging.Logger.Fatal(err)
 	}
 
-	grpcServer := grpc.NewServer()
+	var interceptors []grpc.StreamServerInterceptor
+	interceptors = append(interceptors, requestlogger.LoggingStreamServerInterceptor)
+	if s.ipChecker != nil {
+		interceptors = append(interceptors, ipcheckermiddleware.CheckGRPCRequesterIP(s.ipChecker))
+	}
+	if s.rsaDecrypter != nil {
+		interceptors = append(interceptors, rsamiddleware.DecryptStreamServerInterceptor(s.rsaDecrypter))
+	}
+	grpcServer := grpc.NewServer(grpc.ChainStreamInterceptor(interceptors...))
 	pb.RegisterMetricsServer(grpcServer, s.grpcServer)
 
 	// run grpc server
