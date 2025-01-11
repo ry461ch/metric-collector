@@ -10,12 +10,17 @@ import (
 	"time"
 
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"gopkg.in/resty.v1"
 
 	config "github.com/ry461ch/metric-collector/internal/config/agent"
 	"github.com/ry461ch/metric-collector/internal/models/metrics"
+	pb "github.com/ry461ch/metric-collector/internal/proto"
 	"github.com/ry461ch/metric-collector/pkg/encrypt"
+	ipcheckermiddleware "github.com/ry461ch/metric-collector/pkg/ipchecker/middleware"
 	"github.com/ry461ch/metric-collector/pkg/rsa"
+	rsamiddleware "github.com/ry461ch/metric-collector/pkg/rsa/middleware"
 )
 
 // Sender для отправки метрик на сервер
@@ -23,18 +28,104 @@ type Sender struct {
 	cfg          *config.Config
 	encrypter    *encrypt.Encrypter
 	rsaEncrypter *rsa.RsaEncrypter
+	ip           string
+}
+
+func (s *Sender) convert(m *metrics.Metric) *pb.Metric {
+	if m == nil {
+		return nil
+	}
+
+	var res pb.Metric
+
+	res.Id = m.ID
+
+	switch m.MType {
+	case "counter":
+		res.Type = pb.Metric_counter
+		if m.Delta == nil {
+			return nil
+		}
+		res.Delta = *m.Delta
+	case "gauge":
+		res.Type = pb.Metric_gauge
+		if m.Value == nil {
+			return nil
+		}
+		res.Value = *m.Value
+	default:
+		return nil
+	}
+	return &res
 }
 
 // Init Metric Sender
-func New(encrypter *encrypt.Encrypter, rsaEncrypter *rsa.RsaEncrypter, cfg *config.Config) *Sender {
+func New(encrypter *encrypt.Encrypter, rsaEncrypter *rsa.RsaEncrypter, cfg *config.Config, ip string) *Sender {
 	return &Sender{
 		cfg:          cfg,
 		encrypter:    encrypter,
 		rsaEncrypter: rsaEncrypter,
+		ip:           ip,
 	}
 }
 
-func (s *Sender) sendMetricsWorker(ctx context.Context, metricChannel <-chan metrics.Metric) func() error {
+func (s *Sender) sendGRPCMetricsWorker(ctx context.Context, metricChannel <-chan metrics.Metric) func() error {
+	return func() error {
+		var interceptors []grpc.StreamClientInterceptor
+		if s.ip != "" {
+			interceptors = append(interceptors, ipcheckermiddleware.SetIPGRPCClientStreamInterceptor(s.ip))
+		}
+		if s.rsaEncrypter != nil {
+			interceptors = append(interceptors, rsamiddleware.EncryptStreamClientInterceptor(s.rsaEncrypter))
+		}
+		conn, err := grpc.NewClient(":3200", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithChainStreamInterceptor(interceptors...))
+		if err != nil {
+			return fmt.Errorf("server is not available")
+		}
+
+		client := pb.NewMetricsClient(conn)
+
+		var stream grpc.ClientStreamingClient[pb.Metric, pb.EmptyObject]
+		isStreamOpened := false
+
+		for {
+			select {
+			case <-ctx.Done():
+				err = stream.CloseSend()
+				return err
+			case metric := <-metricChannel:
+				if !isStreamOpened {
+					stream, err = client.PostMetrics(ctx)
+					if err != nil {
+						return fmt.Errorf("can't open stream for posting metrics")
+					}
+					isStreamOpened = true
+				}
+				metricForSend := s.convert(&metric)
+				if metricForSend == nil {
+					log.Println("Can't convert metric")
+					break
+				}
+				err = stream.Send(metricForSend)
+				if err != nil {
+					log.Printf("Error while sending metric: %s", err.Error())
+				}
+			default:
+				if !isStreamOpened {
+					break
+				}
+				isStreamOpened = false
+				err = stream.CloseSend()
+				if err != nil {
+					log.Println("Error while closing stream")
+					return err
+				}
+			}
+		}
+	}
+}
+
+func (s *Sender) sendHTTPMetricsWorker(ctx context.Context, metricChannel <-chan metrics.Metric) func() error {
 	return func() error {
 		serverURL := "http://" + s.cfg.Addr.Host + ":" + strconv.FormatInt(s.cfg.Addr.Port, 10)
 
@@ -52,6 +143,9 @@ func (s *Sender) sendMetricsWorker(ctx context.Context, metricChannel <-chan met
 				}
 
 				restyRequest := client.R().SetHeader("Content-Type", "application/json")
+				if s.ip != "" {
+					restyRequest.SetHeader("X-Real-IP", s.ip)
+				}
 				if s.encrypter != nil {
 					reqBodyHash := s.encrypter.EncryptMessage(reqBody)
 					restyRequest.SetHeader("HashSHA256", fmt.Sprintf("%x", reqBodyHash))
@@ -87,7 +181,11 @@ func (s *Sender) sendMetrics(ctx context.Context, metricChannel <-chan metrics.M
 	wg := new(errgroup.Group)
 
 	for w := 0; w < int(s.cfg.RateLimit); w++ {
-		wg.Go(s.sendMetricsWorker(ctx, metricChannel))
+		if s.cfg.UseGRPC {
+			wg.Go(s.sendGRPCMetricsWorker(ctx, metricChannel))
+		} else {
+			wg.Go(s.sendHTTPMetricsWorker(ctx, metricChannel))
+		}
 	}
 
 	if err := wg.Wait(); err != nil {

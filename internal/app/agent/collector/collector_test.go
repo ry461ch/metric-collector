@@ -3,6 +3,7 @@ package collector
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -10,10 +11,12 @@ import (
 )
 
 func TestCollectMetric(t *testing.T) {
-	metricChannel := make(chan metrics.Metric, 100)
-	defer close(metricChannel)
+	metricsCollector := New(2)
 
-	collectMetrics(context.TODO(), metricChannel)
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Second)
+	defer cancel()
+	metricChannel := metricsCollector.CollectMetricsGenerator(ctx)
+	time.Sleep(time.Second)
 
 	collectedMetrics := 0
 	for {
